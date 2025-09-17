@@ -1,5 +1,44 @@
 {
-  "dependencies": {
-    "expo": "^53.0.20"
+  "name": "deepclean-mobile-hub",
+  "version": "1.0.0",
+  "description": "A comprehensive mobile application for professional cleaning and moving services",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"npm run start:backend\" \"npm run start:android\" \"npm run start:ios\"",
+    "start:backend": "cd backend && npm start",
+    "start:android": "cd android-app && npx expo start",
+    "start:ios": "cd ios-app && npx expo start --port 8082",
+    "install:all": "npm install && cd backend && npm install && cd ../android-app && npm install && cd ../ios-app && npm install",
+    "build:android": "cd android-app && npx expo build:android",
+    "build:ios": "cd ios-app && npx expo build:ios",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "react-native",
+    "expo",
+    "nodejs",
+    "express",
+    "supabase",
+    "mobile-app",
+    "cleaning-services",
+    "moving-services",
+    "ecommerce"
+  ],
+  "author": "Deep Cleaning Hub",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deepcleaninghub-hue/deepclean-mobile-hub.git"
+  },
+  "bugs": {
+    "url": "https://github.com/deepcleaninghub-hue/deepclean-mobile-hub/issues"
+  },
+  "homepage": "https://github.com/deepcleaninghub-hue/deepclean-mobile-hub#readme",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   }
 }
