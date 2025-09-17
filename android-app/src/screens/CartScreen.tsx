@@ -1,55 +1,67 @@
-import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { Text, Card, Button, Chip, Divider, useTheme, IconButton } from 'react-native-paper';
+import React from 'react';
+import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { Text, Card, Button, Chip, Divider, useTheme, IconButton, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const CartScreen = () => {
   const theme = useTheme();
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: 'Deep House Cleaning',
-      price: 89.99,
-      duration: '3-4 hours',
-      quantity: 1,
-    },
-    {
-      id: 2,
-      name: 'Carpet Cleaning',
-      price: 45.99,
-      duration: '1-2 hours',
-      quantity: 1,
-    },
-    {
-      id: 3,
-      name: 'Window Cleaning',
-      price: 29.99,
-      duration: '1 hour',
-      quantity: 1,
-    },
-  ]);
-
-  const updateQuantity = (id: number, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
-  };
-
-  const removeItem = (id: number) => {
-    setCartItems(items => items.filter(item => item.id !== id));
-  };
-
-  const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
+  const { user, isAuthenticated } = useAuth();
+  const { 
+    cartItems, 
+    cartSummary, 
+    loading, 
+    updateQuantity, 
+    removeFromCart, 
+    clearCart, 
+    refreshCart 
+  } = useCart();
 
   const handleCheckout = () => {
+    if (!isAuthenticated) {
+      // Navigate to login screen
+      return;
+    }
     // TODO: Implement checkout functionality
     console.log('Checkout pressed');
   };
+
+  const handleClearCart = () => {
+    clearCart();
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="cart-outline" size={80} color={theme.colors.outline} />
+          <Text variant="headlineSmall" style={styles.emptyTitle}>
+            Please Login
+          </Text>
+          <Text variant="bodyLarge" style={styles.emptyText}>
+            You need to be logged in to view your cart
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="cart-outline" size={80} color={theme.colors.outline} />
+          <Text variant="headlineSmall" style={styles.emptyTitle}>
+            Your Cart is Empty
+          </Text>
+          <Text variant="bodyLarge" style={styles.emptyText}>
+            Add some services to get started
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -63,43 +75,30 @@ const CartScreen = () => {
         </Text>
       </View>
 
-      <ScrollView style={styles.scrollContainer}>
-        {cartItems.length === 0 ? (
-          <Card style={[styles.emptyCartCard, { backgroundColor: theme.colors.surface }]}>
-            <Card.Content style={styles.emptyCartContent}>
-              <Ionicons name="cart-outline" size={64} color={theme.colors.onSurfaceVariant} />
-              <Text variant="headlineSmall" style={[styles.emptyCartTitle, { color: theme.colors.onSurface }]}>
-                Your cart is empty
-              </Text>
-              <Text variant="bodyMedium" style={[styles.emptyCartSubtitle, { color: theme.colors.onSurfaceVariant }]}>
-                Add some cleaning services to get started
-              </Text>
-              <Button 
-                mode="contained" 
-                onPress={() => console.log('Browse services')}
-                style={styles.browseButton}
-              >
-                Browse Services
-              </Button>
-            </Card.Content>
-          </Card>
-        ) : (
-          <>
-            {/* Cart Items */}
-            {cartItems.map((item, index) => (
-              <Card key={item.id} style={[styles.cartItemCard, { backgroundColor: theme.colors.surface }]}>
-                <Card.Content style={styles.cartItemContent}>
-                  <View style={styles.itemInfo}>
-                    <Text variant="titleMedium" style={[styles.itemName, { color: theme.colors.onSurface }]}>
-                      {item.name}
-                    </Text>
-                    <Text variant="bodyMedium" style={[styles.itemDuration, { color: theme.colors.onSurfaceVariant }]}>
-                      Duration: {item.duration}
-                    </Text>
-                    <Text variant="titleLarge" style={[styles.itemPrice, { color: theme.colors.primary }]}>
-                      ${item.price}
-                    </Text>
-                  </View>
+      <ScrollView 
+        style={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={refreshCart} />
+        }
+      >
+        {/* Cart Items */}
+        {cartItems.map((item, index) => (
+          <Card key={item.id} style={[styles.cartItemCard, { backgroundColor: theme.colors.surface }]}>
+            <Card.Content style={styles.cartItemContent}>
+              <View style={styles.itemInfo}>
+                <Text variant="titleMedium" style={[styles.itemName, { color: theme.colors.onSurface }]}>
+                  {item.service_title}
+                </Text>
+                <Text variant="bodyMedium" style={[styles.itemDuration, { color: theme.colors.onSurfaceVariant }]}>
+                  Duration: {item.service_duration}
+                </Text>
+                <Text variant="bodyMedium" style={[styles.itemCategory, { color: theme.colors.onSurfaceVariant }]}>
+                  Category: {item.service_category}
+                </Text>
+                <Text variant="titleLarge" style={[styles.itemPrice, { color: theme.colors.primary }]}>
+                  €{item.calculated_price.toFixed(2)}
+                </Text>
+              </View>
                   
                   <View style={styles.itemActions}>
                     <View style={styles.quantityControls}>
@@ -108,6 +107,7 @@ const CartScreen = () => {
                         size={20}
                         onPress={() => updateQuantity(item.id, item.quantity - 1)}
                         style={styles.quantityButton}
+                        disabled={loading}
                       />
                       <Text variant="titleMedium" style={[styles.quantity, { color: theme.colors.onSurface }]}>
                         {item.quantity}
@@ -117,14 +117,16 @@ const CartScreen = () => {
                         size={20}
                         onPress={() => updateQuantity(item.id, item.quantity + 1)}
                         style={styles.quantityButton}
+                        disabled={loading}
                       />
                     </View>
                     <IconButton
                       icon="delete"
                       size={20}
                       iconColor={theme.colors.error}
-                      onPress={() => removeItem(item.id)}
+                      onPress={() => removeFromCart(item.id)}
                       style={styles.deleteButton}
+                      disabled={loading}
                     />
                   </View>
                 </Card.Content>
@@ -132,52 +134,62 @@ const CartScreen = () => {
               </Card>
             ))}
 
-            {/* Order Summary */}
-            <Card style={[styles.summaryCard, { backgroundColor: theme.colors.surface }]}>
-              <Card.Content>
-                <Text variant="titleLarge" style={[styles.summaryTitle, { color: theme.colors.onSurface }]}>
-                  Order Summary
-                </Text>
-                <View style={styles.summaryRow}>
-                  <Text variant="bodyLarge" style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Subtotal
-                  </Text>
-                  <Text variant="bodyLarge" style={[styles.summaryValue, { color: theme.colors.onSurface }]}>
-                    ${getTotalPrice().toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text variant="bodyLarge" style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Service Fee
-                  </Text>
-                  <Text variant="bodyLarge" style={[styles.summaryValue, { color: theme.colors.onSurface }]}>
-                    $5.99
-                  </Text>
-                </View>
-                <Divider style={styles.summaryDivider} />
-                <View style={styles.summaryRow}>
-                  <Text variant="titleLarge" style={[styles.totalLabel, { color: theme.colors.onSurface }]}>
-                    Total
-                  </Text>
-                  <Text variant="titleLarge" style={[styles.totalValue, { color: theme.colors.primary }]}>
-                    ${(getTotalPrice() + 5.99).toFixed(2)}
-                  </Text>
-                </View>
-              </Card.Content>
-            </Card>
+        {/* Order Summary */}
+        <Card style={[styles.summaryCard, { backgroundColor: theme.colors.surface }]}>
+          <Card.Content>
+            <Text variant="titleLarge" style={[styles.summaryTitle, { color: theme.colors.onSurface }]}>
+              Order Summary
+            </Text>
+            <View style={styles.summaryRow}>
+              <Text variant="bodyLarge" style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>
+                Subtotal
+              </Text>
+              <Text variant="bodyLarge" style={[styles.summaryValue, { color: theme.colors.onSurface }]}>
+                €{cartSummary.totalPrice.toFixed(2)}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text variant="bodyLarge" style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>
+                Service Fee
+              </Text>
+              <Text variant="bodyLarge" style={[styles.summaryValue, { color: theme.colors.onSurface }]}>
+                €5.99
+              </Text>
+            </View>
+            <Divider style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <Text variant="titleLarge" style={[styles.totalLabel, { color: theme.colors.onSurface }]}>
+                Total
+              </Text>
+              <Text variant="titleLarge" style={[styles.totalValue, { color: theme.colors.primary }]}>
+                €{(cartSummary.totalPrice + 5.99).toFixed(2)}
+              </Text>
+            </View>
+          </Card.Content>
+        </Card>
 
-            {/* Checkout Button */}
-            <Button 
-              mode="contained" 
-              onPress={handleCheckout}
-              icon="cart-check"
-              style={styles.checkoutButton}
-              contentStyle={styles.checkoutButtonContent}
-            >
-              Proceed to Checkout
-            </Button>
-          </>
-        )}
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <Button 
+            mode="outlined" 
+            onPress={handleClearCart}
+            icon="delete-sweep"
+            style={styles.clearButton}
+            disabled={loading}
+          >
+            Clear Cart
+          </Button>
+          <Button 
+            mode="contained" 
+            onPress={handleCheckout}
+            icon="cart-check"
+            style={styles.checkoutButton}
+            contentStyle={styles.checkoutButtonContent}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator size="small" color="white" /> : 'Proceed to Checkout'}
+          </Button>
+        </View>
       </ScrollView>
     </View>
   );
@@ -328,12 +340,40 @@ const styles = StyleSheet.create({
   totalValue: {
     fontWeight: '700',
   },
-  checkoutButton: {
-    borderRadius: 12,
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
     marginBottom: 32,
+  },
+  clearButton: {
+    flex: 1,
+    borderRadius: 12,
+  },
+  checkoutButton: {
+    flex: 2,
+    borderRadius: 12,
   },
   checkoutButtonContent: {
     paddingVertical: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyText: {
+    textAlign: 'center',
+    opacity: 0.7,
+  },
+  itemCategory: {
+    marginTop: 4,
+    fontSize: 12,
   },
 });
 

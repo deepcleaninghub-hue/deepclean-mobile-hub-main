@@ -1,0 +1,22 @@
+🔌 Connecting to Supabase...
+🚀 Deep Cleaning Hub API server running on port 5000
+📱 Environment: development
+🔗 Health check: http://localhost:5000/health
+📚 API base: http://localhost:5000/api
+✅ Connected to Supabase successfully
+🔧 Initializing database schema...
+Creating services table...
+Creating inquiries table...
+Creating blogs table...
+Creating admin users table...
+Service kitchen-cleaning already exists or error: invalid input syntax for type numeric: "From €80"
+Service house-moving already exists or error: invalid input syntax for type numeric: "From €150"
+Service deep-cleaning already exists or error: invalid input syntax for type numeric: "From €120"
+Service furniture-assembly already exists or error: invalid input syntax for type numeric: "From €60"
+Service carpet-cleaning already exists or error: invalid input syntax for type numeric: "From €40"
+Service window-cleaning already exists or error: invalid input syntax for type numeric: "From €30"
+✅ Default services inserted/updated
+✅ Database schema initialized successfully
+[0mGET /health [32m200[0m 3.855 ms - 127[0m
+[0mGET /api/cart/items [33m401[0m 336.812 ms - 25[0m
+SIGTERM received, shutting down gracefully

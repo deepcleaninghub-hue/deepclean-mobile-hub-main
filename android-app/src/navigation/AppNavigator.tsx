@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -7,9 +8,23 @@ import ServicesScreen from '../screens/ServicesScreen';
 import ContactScreen from '../screens/ContactScreen';
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import OrderHistoryScreen from '../screens/OrderHistoryScreen';
+import OrderDetailsScreen from '../screens/OrderDetailsScreen';
+import BookingScreen from '../screens/BookingScreen';
 import { theme } from '../utils/theme';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+const MainStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
+      <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+      <Stack.Screen name="Booking" component={BookingScreen} />
+    </Stack.Navigator>
+  );
+};
 
 const AppNavigator = () => {
   return (
@@ -28,6 +43,8 @@ const AppNavigator = () => {
             iconName = focused ? 'cart' : 'cart-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === 'Orders') {
+            iconName = focused ? 'receipt' : 'receipt-outline';
           } else {
             iconName = 'help-outline';
           }
@@ -62,6 +79,11 @@ const AppNavigator = () => {
         name="Services" 
         component={ServicesScreen} 
         options={{ title: 'Our Services' }}
+      />
+      <Tab.Screen 
+        name="Orders" 
+        component={MainStack} 
+        options={{ title: 'My Orders' }}
       />
       <Tab.Screen 
         name="Contact" 
