@@ -3,9 +3,11 @@ import { View, ScrollView, StyleSheet, Alert, TouchableOpacity } from 'react-nat
 import { Text, Card, Button, Avatar, Divider, useTheme, IconButton, Badge } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '../contexts/AuthContext';
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }: any) => {
   const theme = useTheme();
+  const { user, signOut, isAuthenticated } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const handleEditProfile = () => {
@@ -22,7 +24,7 @@ const ProfileScreen = () => {
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: () => console.log('Logout confirmed') },
+        { text: 'Logout', style: 'destructive', onPress: () => signOut() },
       ]
     );
   };
@@ -32,7 +34,11 @@ const ProfileScreen = () => {
   };
 
   const handleMenuPress = (menuItem: string) => {
-    Alert.alert(menuItem, `${menuItem} functionality coming soon!`);
+    if (menuItem === 'My Orders') {
+      navigation.navigate('Orders');
+    } else {
+      Alert.alert(menuItem, `${menuItem} functionality coming soon!`);
+    }
   };
 
   return (
@@ -81,21 +87,23 @@ const ProfileScreen = () => {
               
               <View style={styles.profileInfo}>
                 <Text variant="headlineSmall" style={[styles.name, { color: theme.colors.onSurface }]}>
-                  John Doe
+                  {user ? `${user.first_name} ${user.last_name}` : 'Guest User'}
                 </Text>
                 <Text variant="bodyMedium" style={[styles.email, { color: theme.colors.onSurfaceVariant }]}>
-                  john.doe@example.com
+                  {user?.email || 'No email'}
                 </Text>
-                <View style={styles.phoneContainer}>
-                  <Ionicons name="call" size={16} color={theme.colors.primary} />
-                  <Text variant="bodyMedium" style={[styles.phone, { color: theme.colors.onSurfaceVariant }]}>
-                    +1 (555) 123-4567
-                  </Text>
-                </View>
+                {user?.phone && (
+                  <View style={styles.phoneContainer}>
+                    <Ionicons name="call" size={16} color={theme.colors.primary} />
+                    <Text variant="bodyMedium" style={[styles.phone, { color: theme.colors.onSurfaceVariant }]}>
+                      {user.phone}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.verificationBadge}>
                   <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
                   <Text variant="bodySmall" style={[styles.verificationText, { color: theme.colors.primary }]}>
-                    Verified Account
+                    {isAuthenticated ? 'Verified Account' : 'Not Verified'}
                   </Text>
                 </View>
               </View>

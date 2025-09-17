@@ -6,17 +6,19 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const connectDB = require('./config/database');
+const { connectDB } = require('./config/database');
 const errorHandler = require('./middleware/errorHandler');
 const notFound = require('./middleware/notFound');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const mobileAuthRoutes = require('./routes/mobileAuth');
 const serviceRoutes = require('./routes/services');
 const inquiryRoutes = require('./routes/inquiries');
 const blogRoutes = require('./routes/blogs');
 const adminRoutes = require('./routes/admin');
 const uploadRoutes = require('./routes/upload');
+const cartRoutes = require('./routes/cart');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,7 +34,9 @@ const corsOptions = {
   origin: process.env.ALLOWED_ORIGINS?.split(',') || [
     'http://localhost:3000',
     'http://localhost:8081',
-    'exp://192.168.29.65:8081'
+    'http://localhost:8082',
+    'exp://192.168.29.65:8081',
+    'exp://192.168.29.65:8082'
   ],
   credentials: true,
   optionsSuccessStatus: 200
@@ -73,11 +77,13 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/mobile-auth', mobileAuthRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

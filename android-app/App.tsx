@@ -5,18 +5,24 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 
-import AppNavigator from './src/navigation/AppNavigator';
+import MainNavigator from './src/navigation/MainNavigator';
 import { theme } from './src/utils/theme';
+import { AuthProvider } from './src/contexts/AuthContext';
+import { CartProvider } from './src/contexts/CartContext';
 
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <PaperProvider theme={theme}>
-          <NavigationContainer>
-            <StatusBar style="auto" />
-            <AppNavigator />
-          </NavigationContainer>
+          <AuthProvider>
+            <CartProvider>
+              <NavigationContainer>
+                <StatusBar style="auto" />
+                <MainNavigator />
+              </NavigationContainer>
+            </CartProvider>
+          </AuthProvider>
         </PaperProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

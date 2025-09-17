@@ -22,31 +22,31 @@ const HomeScreen = () => {
   const carouselImages = [
     {
       id: 'kitchen-cleaning-hero',
-      uri: require('../../assets/images/kitchen-cleaning.png'),
+      uri: require('../assets/images/kitchen-cleaning.png'),
       title: 'Professional Kitchen Cleaning',
       description: 'Expert deep cleaning for your kitchen surfaces and appliances',
     },
     {
       id: 'living-room-cleaning',
-      uri: require('../../assets/images/living-room-cleaning.png'),
+      uri: require('../assets/images/living-room-cleaning.png'),
       title: 'Living Space Excellence',
       description: 'Transform your living areas with our thorough cleaning services',
     },
     {
       id: 'bathroom-cleaning',
-      uri: require('../../assets/images/bathroom-cleaning.png'),
+      uri: require('../assets/images/bathroom-cleaning.png'),
       title: 'Bathroom Sanitization',
       description: 'Complete bathroom cleaning and sanitization for hygiene',
     },
     {
       id: 'office-cleaning',
-      uri: require('../../assets/images/office-cleaning.png'),
+      uri: require('../assets/images/office-cleaning.png'),
       title: 'Commercial Cleaning',
       description: 'Professional cleaning solutions for offices and commercial spaces',
     },
     {
       id: 'hands-cleaning',
-      uri: require('../../assets/images/hands-cleaning.png'),
+      uri: require('../assets/images/hands-cleaning.png'),
       title: 'Professional Hand Cleaning',
       description: 'Thorough cleaning with professional equipment and techniques',
     },
