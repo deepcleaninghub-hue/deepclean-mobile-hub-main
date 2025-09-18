@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { httpClient } from '../services/simpleHttpClient';
+import { profileAPI, UserProfile } from '../services/profileAPI';
 import { MobileUser } from '../config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
@@ -12,6 +13,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, firstName: string, lastName: string, phone?: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<MobileUser>) => Promise<boolean>;
+  updateUser: (updatedUser: UserProfile) => void;
   clearAllAuthData: () => Promise<void>;
 }
 
@@ -171,14 +173,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
 
-      // For demo purposes, just update local state
-      // In production, this would update the database
-      const updatedUser = { ...user, ...updates, updated_at: new Date().toISOString() };
-      setUser(updatedUser);
-      await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
-
-      Alert.alert('Success', 'Profile updated successfully!');
-      return true;
+      // Call the profile API to update the database
+      const result = await profileAPI.updateProfile(updates);
+      
+      if (result.success && result.data) {
+        // Update local state with the response from server
+        const updatedUser = { ...user, ...result.data, updated_at: new Date().toISOString() };
+        setUser(updatedUser);
+        await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+        
+        Alert.alert('Success', result.message || 'Profile updated successfully!');
+        return true;
+      } else {
+        Alert.alert('Error', result.error || 'Failed to update profile');
+        return false;
+      }
     } catch (error) {
       console.error('Update profile error:', error);
       Alert.alert('Error', 'Failed to update profile');
@@ -186,6 +195,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateUser = (updatedProfile: UserProfile): void => {
+    if (!user) return;
+    
+    // Merge the updated profile data with the existing user data
+    const updatedUser: MobileUser = {
+      ...user,
+      ...updatedProfile,
+      // Keep the MobileUser-specific fields that aren't in UserProfile
+      password: user.password,
+      is_active: user.is_active,
+      email_verified: user.email_verified,
+      last_login: user.last_login,
+    };
+    
+    setUser(updatedUser);
+    AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
   };
 
   const value: AuthContextType = {
@@ -196,6 +223,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signOut,
     updateProfile,
+    updateUser,
     clearAllAuthData,
   };
 
