@@ -36,28 +36,31 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @desc    Get single service
-// @route   GET /api/services/:id
+// @desc    Get all unique categories
+// @route   GET /api/services/categories
 // @access  Public
-router.get('/:id', async (req, res) => {
+router.get('/categories', async (req, res) => {
   try {
-    const { data: service, error } = await supabase
+    const { data: categories, error } = await supabase
       .from('services')
-      .select('*')
-      .eq('id', req.params.id)
+      .select('category')
       .eq('is_active', true)
-      .single();
+      .not('category', 'is', null);
 
-    if (error || !service) {
-      return res.status(404).json({
+    if (error) {
+      return res.status(500).json({
         success: false,
-        error: 'Service not found'
+        error: 'Error fetching categories'
       });
     }
 
+    // Extract unique categories
+    const uniqueCategories = [...new Set(categories.map(item => item.category))].sort();
+
     res.json({
       success: true,
-      data: service
+      count: uniqueCategories.length,
+      data: uniqueCategories
     });
   } catch (error) {
     res.status(500).json({
@@ -90,6 +93,37 @@ router.get('/category/:category', async (req, res) => {
       success: true,
       count: services.length,
       data: services
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+});
+
+// @desc    Get single service
+// @route   GET /api/services/:id
+// @access  Public
+router.get('/:id', async (req, res) => {
+  try {
+    const { data: service, error } = await supabase
+      .from('services')
+      .select('*')
+      .eq('id', req.params.id)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !service) {
+      return res.status(404).json({
+        success: false,
+        error: 'Service not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: service
     });
   } catch (error) {
     res.status(500).json({

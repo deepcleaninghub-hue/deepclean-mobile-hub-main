@@ -12,6 +12,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, firstName: string, lastName: string, phone?: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<MobileUser>) => Promise<boolean>;
+  updateUser: (updatedUser: MobileUser) => void;
   clearAllAuthData: () => Promise<void>;
 }
 
@@ -188,6 +189,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const updateUser = (updatedUser: MobileUser): void => {
+    setUser(updatedUser);
+    AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -196,6 +202,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signOut,
     updateProfile,
+    updateUser,
     clearAllAuthData,
   };
 

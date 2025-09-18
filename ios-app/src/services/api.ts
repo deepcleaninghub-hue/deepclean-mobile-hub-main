@@ -65,10 +65,27 @@ export const servicesAPI = {
     }
   },
 
+  // Get all categories
+  async getCategories(): Promise<string[]> {
+    try {
+      const response = await httpClient.get<{success: boolean, data: string[]}>('/services/categories');
+      
+      if (response.success && response.data) {
+        return response.data;
+      }
+      
+      // Return fallback categories if API fails
+      return ['House Cleaning', 'Kitchen Cleaning', 'Bathroom Cleaning', 'Office Cleaning'];
+    } catch (error) {
+      console.error('Error in getCategories:', error);
+      return ['House Cleaning', 'Kitchen Cleaning', 'Bathroom Cleaning', 'Office Cleaning'];
+    }
+  },
+
   // Get services by category
   async getServicesByCategory(category: string): Promise<Service[]> {
     try {
-      const response = await httpClient.get<{success: boolean, data: Service[]}>(`/services?category=eq.${category}`);
+      const response = await httpClient.get<{success: boolean, data: Service[]}>(`/services/category/${encodeURIComponent(category)}`);
       
       if (response.success && response.data) {
         return response.data;

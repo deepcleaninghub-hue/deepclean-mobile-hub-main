@@ -1,24 +1,27 @@
 🔌 Connecting to Supabase...
-🚀 Deep Cleaning Hub API server running on port 5000
-📱 Environment: development
-🔗 Health check: http://localhost:5000/health
-📚 API base: http://localhost:5000/api
-✅ Connected to Supabase successfully
-🔧 Initializing database schema...
-Creating services table...
-Creating inquiries table...
-Creating blogs table...
-Creating admin users table...
-Service kitchen-cleaning already exists or error: invalid input syntax for type numeric: "From €80"
-Service house-moving already exists or error: invalid input syntax for type numeric: "From €150"
-Service deep-cleaning already exists or error: invalid input syntax for type numeric: "From €120"
-Service furniture-assembly already exists or error: invalid input syntax for type numeric: "From €60"
-Service carpet-cleaning already exists or error: invalid input syntax for type numeric: "From €40"
-Service window-cleaning already exists or error: invalid input syntax for type numeric: "From €30"
-✅ Default services inserted/updated
-✅ Database schema initialized successfully
-[0mGET /api/cart/items [32m200[0m 613.133 ms - 26[0m
-[0mPOST /api/cart/items [32m200[0m 1122.799 ms - 438[0m
-[0mGET /api/cart/items [32m200[0m 803.974 ms - 799[0m
-[0mGET /api/cart/summary [32m200[0m 527.222 ms - 57[0m
-SIGTERM received, shutting down gracefully
+node:events:485
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::5000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at app.listen (/Users/Mayank/Desktop/deepclean-mobile-hub-main/backend/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/Mayank/Desktop/deepclean-mobile-hub-main/backend/src/server.js:105:5)
+    at Module._compile (node:internal/modules/cjs/loader:1692:14)
+    at Object..js (node:internal/modules/cjs/loader:1824:10)
+    at Module.load (node:internal/modules/cjs/loader:1427:32)
+    at Module._load (node:internal/modules/cjs/loader:1250:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 5000
+}
+
+Node.js v24.4.1
