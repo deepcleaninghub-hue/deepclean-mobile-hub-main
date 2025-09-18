@@ -11,7 +11,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const handleEditProfile = () => {
-    Alert.alert('Edit Profile', 'Profile editing functionality coming soon!');
+    navigation.navigate('EditProfile');
   };
 
   const handleSettings = () => {

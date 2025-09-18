@@ -8,8 +8,8 @@ import {
 } from 'react-native';
 import { Text, Card, Button, useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { useCart } from '../contexts/CartContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../src/contexts/CartContext';
+import { useAuth } from '../src/contexts/AuthContext';
 
 interface ServiceCardProps {
   id: string;

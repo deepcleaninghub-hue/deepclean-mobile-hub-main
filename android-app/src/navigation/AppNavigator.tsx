@@ -8,6 +8,7 @@ import ServicesScreen from '../screens/ServicesScreen';
 import ContactScreen from '../screens/ContactScreen';
 import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
 import OrderDetailsScreen from '../screens/OrderDetailsScreen';
 import BookingScreen from '../screens/BookingScreen';
@@ -22,6 +23,15 @@ const MainStack = () => {
       <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
       <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
       <Stack.Screen name="Booking" component={BookingScreen} />
+    </Stack.Navigator>
+  );
+};
+
+const ProfileStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProfileMain" component={ProfileScreen} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} />
     </Stack.Navigator>
   );
 };
@@ -97,7 +107,7 @@ const AppNavigator = () => {
       />
       <Tab.Screen 
         name="Profile" 
-        component={ProfileScreen} 
+        component={ProfileStack} 
         options={{ title: 'Profile' }}
       />
     </Tab.Navigator>

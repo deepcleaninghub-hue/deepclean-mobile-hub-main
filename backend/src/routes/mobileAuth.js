@@ -6,6 +6,101 @@ const { supabase } = require('../config/database');
 
 const router = express.Router();
 
+// @desc    Mobile user sign up (alias for signup)
+// @route   POST /api/mobile-auth/register
+// @access  Public
+router.post('/register', [
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('firstName').notEmpty().withMessage('First name is required'),
+    body('lastName').notEmpty().withMessage('Last name is required')
+  ]
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      error: errors.array()[0].msg
+    });
+  }
+
+  try {
+    const { email, password, firstName, lastName, phone } = req.body;
+
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('mobile_users')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'User already exists with this email'
+      });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create mobile user
+    const { data: user, error } = await supabase
+      .from('mobile_users')
+      .insert([{
+        email,
+        password: hashedPassword,
+        first_name: firstName,
+        last_name: lastName,
+        phone: phone || null,
+        email_verified: false,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select('id, email, first_name, last_name, phone, email_verified, is_active, created_at')
+      .single();
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: 'Error creating user account'
+      });
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, type: 'mobile' },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully',
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          phone: user.phone,
+          is_verified: user.is_verified
+        },
+        token
+      }
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+});
+
 // @desc    Mobile user sign up
 // @route   POST /api/mobile-auth/signup
 // @access  Public
@@ -94,6 +189,86 @@ router.post('/signup', [
     });
   } catch (error) {
     console.error('Signup error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+});
+
+// @desc    Mobile user sign in (alias for signin)
+// @route   POST /api/mobile-auth/login
+// @access  Public
+router.post('/login', [
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').notEmpty().withMessage('Password is required')
+  ]
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      error: errors.array()[0].msg
+    });
+  }
+
+  try {
+    const { email, password } = req.body;
+
+    // Check if user exists
+    const { data: user, error } = await supabase
+      .from('mobile_users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error || !user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, type: 'mobile' },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    // Update last login
+    await supabase
+      .from('mobile_users')
+      .update({ last_login: new Date().toISOString() })
+      .eq('id', user.id);
+
+    res.json({
+      success: true,
+      message: 'Sign in successful',
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          phone: user.phone,
+          is_verified: user.is_verified
+        },
+        token
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'

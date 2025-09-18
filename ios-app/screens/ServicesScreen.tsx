@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../components/AppHeader';
 import ServiceCard from '../components/ServiceCard';
-import { servicesAPI } from '../services/api';
+import { servicesAPI } from '../src/services/api';
 
 const ServicesScreen = () => {
   const theme = useTheme();
@@ -21,20 +21,39 @@ const ServicesScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch services from API
+  // Fetch services and categories from API
   useEffect(() => {
-    fetchServices();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch services and categories in parallel
+      const [servicesData, categoriesData] = await Promise.all([
+        servicesAPI.getAllServices(),
+        servicesAPI.getCategories()
+      ]);
+      
+      setServices(servicesData);
+      
+      // Add 'All' category at the beginning
+      const allCategories = ['All', ...categoriesData];
+      setCategories(allCategories);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      Alert.alert('Error', 'Failed to load services and categories');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchServices = async () => {
     try {
       setLoading(true);
       const servicesData = await servicesAPI.getAllServices();
       setServices(servicesData);
-      
-      // Extract unique categories
-      const uniqueCategories = ['All', ...new Set(servicesData.map(service => service.category))];
-      setCategories(uniqueCategories);
     } catch (error) {
       console.error('Error fetching services:', error);
       Alert.alert('Error', 'Failed to load services');
@@ -45,13 +64,33 @@ const ServicesScreen = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchServices();
+    await fetchData();
     setRefreshing(false);
   };
 
-  const filteredServices = selectedCategory === 'All' 
-    ? services 
-    : services.filter(service => service.category === selectedCategory);
+  // Handle category selection
+  const handleCategorySelect = async (category: string) => {
+    setSelectedCategory(category);
+    
+    if (category === 'All') {
+      // Show all services
+      await fetchServices();
+    } else {
+      // Fetch services for specific category
+      try {
+        setLoading(true);
+        const categoryServices = await servicesAPI.getServicesByCategory(category);
+        setServices(categoryServices);
+      } catch (error) {
+        console.error('Error fetching services by category:', error);
+        Alert.alert('Error', 'Failed to load services for this category');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const filteredServices = services; // Services are already filtered by category selection
 
   const handleBookService = (service: any) => {
     // Navigate to booking screen
@@ -85,7 +124,7 @@ const ServicesScreen = () => {
                 key={category}
                 mode={selectedCategory === category ? 'flat' : 'outlined'}
                 selected={selectedCategory === category}
-                onPress={() => setSelectedCategory(category)}
+                onPress={() => handleCategorySelect(category)}
                 style={[
                   styles.categoryChip,
                   selectedCategory === category && { backgroundColor: theme.colors.primary }
