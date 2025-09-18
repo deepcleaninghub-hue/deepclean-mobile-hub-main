@@ -119,7 +119,7 @@ const ServicesScreen = () => {
         {/* Category Filter */}
         <View style={styles.categoryContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-            {categories.map((category) => (
+            {(categories || []).map((category) => (
               <Chip
                 key={category}
                 mode={selectedCategory === category ? 'flat' : 'outlined'}
@@ -159,7 +159,7 @@ const ServicesScreen = () => {
               </Text>
             </View>
           ) : (
-            filteredServices.map((service) => (
+            (filteredServices || []).map((service) => (
               <ServiceCard
                 key={service.id || Math.random().toString()}
                 id={service.id || ''}

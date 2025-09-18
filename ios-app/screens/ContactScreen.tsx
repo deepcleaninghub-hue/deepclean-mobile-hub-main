@@ -206,7 +206,7 @@ const ContactScreen = () => {
                           Alert.alert(
                             'Select Service',
                             'Choose a service:',
-                            services.map(service => ({
+                            (services || []).map(service => ({
                               text: service,
                               onPress: () => onChange(service),
                             }))

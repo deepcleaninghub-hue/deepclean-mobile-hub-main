@@ -283,7 +283,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
                 Total Amount
               </Text>
               <Text variant="titleMedium" style={[styles.infoValue, { color: theme.colors.primary, fontWeight: 'bold' }]}>
-                €{order.totalAmount.toFixed(2)}
+                €{(order.totalAmount || 0).toFixed(2)}
               </Text>
             </View>
           </Card.Content>
@@ -327,7 +327,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
             </Text>
             <Divider style={styles.divider} />
             
-            {order.items.map((item, index) => (
+            {(order.items || []).map((item, index) => (
               <View key={index} style={styles.serviceItem}>
                 <View style={styles.serviceInfo}>
                   <Text variant="bodyLarge" style={[styles.serviceTitle, { color: theme.colors.onSurface }]}>
@@ -338,7 +338,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
                   </Text>
                 </View>
                 <Text variant="titleMedium" style={[styles.servicePrice, { color: theme.colors.primary }]}>
-                  €{item.calculated_price.toFixed(2)}
+                  €{(item.calculated_price || 0).toFixed(2)}
                 </Text>
               </View>
             ))}

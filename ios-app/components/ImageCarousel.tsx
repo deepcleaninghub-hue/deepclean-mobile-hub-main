@@ -61,7 +61,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images, height = 300 }) =
         scrollEventThrottle={16}
         style={styles.scrollView}
       >
-        {images.map((image, index) => (
+        {(images || []).map((image, index) => (
           <View key={image.id} style={[styles.slide, { width: screenWidth }]}>
             <Image 
               source={typeof image.uri === 'number' ? image.uri : { uri: image.uri }}
@@ -88,7 +88,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images, height = 300 }) =
       
       {/* Pagination Indicators */}
       <View style={styles.paginationContainer}>
-        {images.map((_, index) => (
+        {(images || []).map((_, index) => (
           <View
             key={index}
             style={[

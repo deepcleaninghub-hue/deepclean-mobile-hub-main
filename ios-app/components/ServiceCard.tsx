@@ -79,7 +79,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           {(price !== undefined && price !== null) && (
             <View style={styles.priceContainer}>
               <Text variant="titleLarge" style={[styles.price, { color: theme.colors.primary }]}>
-                €{price.toFixed(2)}
+                €{(price || 0).toFixed(2)}
               </Text>
               {duration && (
                 <Text variant="bodySmall" style={[styles.duration, { color: theme.colors.onSurfaceVariant }]}>

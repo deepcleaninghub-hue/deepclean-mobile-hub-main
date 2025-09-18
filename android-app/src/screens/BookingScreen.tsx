@@ -301,7 +301,7 @@ const BookingScreen = ({ navigation, route }: any) => {
             </Text>
             <Divider style={styles.divider} />
             
-            {serviceProviders.map((provider) => (
+            {(serviceProviders || []).map((provider) => (
               <Card
                 key={provider.id}
                 style={[
@@ -321,7 +321,7 @@ const BookingScreen = ({ navigation, route }: any) => {
                         <View style={styles.ratingContainer}>
                           <Ionicons name="star" size={16} color="#FFD700" />
                           <Text variant="bodySmall" style={[styles.rating, { color: theme.colors.onSurfaceVariant }]}>
-                            {provider.rating.toFixed(1)}
+                            {(provider.rating || 0).toFixed(1)}
                           </Text>
                         </View>
                         <Text variant="bodySmall" style={[styles.completedJobs, { color: theme.colors.onSurfaceVariant }]}>
@@ -332,7 +332,7 @@ const BookingScreen = ({ navigation, route }: any) => {
                         {provider.bio}
                       </Text>
                       <View style={styles.specialties}>
-                        {provider.specialties.map((specialty, index) => (
+                        {(provider.specialties || []).map((specialty, index) => (
                           <Chip key={index} mode="flat" style={styles.specialtyChip}>
                             {specialty}
                           </Chip>

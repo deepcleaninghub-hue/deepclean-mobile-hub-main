@@ -1,7 +1,7 @@
 // Simple HTTP client for React Native compatibility
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://192.168.29.65:5000/api';
+const BASE_URL = 'http://192.168.29.65:5001/api';
 
 interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
