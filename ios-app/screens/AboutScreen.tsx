@@ -10,6 +10,7 @@ import { Text, Card, Button, Avatar, useTheme, Divider } from 'react-native-pape
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import AppHeader from '../components/AppHeader';
 
 const AboutScreen = () => {
   const theme = useTheme();
@@ -59,6 +60,7 @@ const AboutScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <AppHeader />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <LinearGradient

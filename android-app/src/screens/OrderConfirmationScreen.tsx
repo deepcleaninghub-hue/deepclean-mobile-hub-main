@@ -22,8 +22,7 @@ const OrderConfirmationScreen = ({ navigation, route }: any) => {
   };
 
   const handleViewOrders = () => {
-    // In a real app, this would navigate to an orders screen
-    Alert.alert('Orders', 'Orders screen would be implemented here');
+    navigation.navigate('OrderHistory');
   };
 
   if (!order) {

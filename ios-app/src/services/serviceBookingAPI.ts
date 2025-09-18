@@ -7,7 +7,7 @@ export interface ServiceBooking {
   booking_date: string;
   booking_time: string;
   duration_minutes: number;
-  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'completed';
   customer_name: string;
   customer_email: string;
   customer_phone?: string;
@@ -54,7 +54,7 @@ export interface UpdateServiceBookingData {
   customer_phone?: string;
   service_address?: string;
   special_instructions?: string;
-  status?: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+  status?: 'scheduled' | 'completed';
 }
 
 class ServiceBookingAPI {
@@ -153,6 +153,28 @@ class ServiceBookingAPI {
       return response.data || [];
     } catch (error) {
       console.error('Error fetching upcoming bookings:', error);
+      throw error;
+    }
+  }
+
+  // Get scheduled bookings (pending, confirmed, in_progress)
+  async getScheduledBookings(): Promise<ServiceBooking[]> {
+    try {
+      const response = await httpClient.get<{success: boolean, data: ServiceBooking[]}>(`${this.baseUrl}/scheduled`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching scheduled bookings:', error);
+      throw error;
+    }
+  }
+
+  // Get completed bookings
+  async getCompletedBookings(): Promise<ServiceBooking[]> {
+    try {
+      const response = await httpClient.get<{success: boolean, data: ServiceBooking[]}>(`${this.baseUrl}/completed`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching completed bookings:', error);
       throw error;
     }
   }
