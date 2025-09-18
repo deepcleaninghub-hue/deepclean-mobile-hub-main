@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl } from 'react-native';
 import { Text, Card, Button, Chip, Divider, useTheme, IconButton, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import AppHeader from '../components/AppHeader';
 import { useCart } from '../src/contexts/CartContext';
 import { useAuth } from '../src/contexts/AuthContext';
 
@@ -64,6 +65,7 @@ const CartScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
+      <AppHeader />
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
         <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>

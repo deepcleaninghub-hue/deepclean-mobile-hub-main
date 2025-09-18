@@ -9,8 +9,10 @@ import {
 import { Text, Card, Button, Chip, useTheme, Divider, ProgressBar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AppHeader from '../components/AppHeader';
 import { useAuth } from '../src/contexts/AuthContext';
 import { orderAPI } from '../src/services/orderAPI';
+import { serviceBookingAPI, ServiceBooking } from '../src/services/serviceBookingAPI';
 
 interface Order {
   id: string;
@@ -51,13 +53,18 @@ interface Order {
 const OrderDetailsScreen = ({ navigation, route }: any) => {
   const theme = useTheme();
   const { user } = useAuth();
-  const { order: initialOrder } = route.params;
-  const [order, setOrder] = useState<Order>(initialOrder);
+  const { order: initialOrder, booking: initialBooking } = route.params;
+  const [order, setOrder] = useState<Order | ServiceBooking>(initialOrder || initialBooking);
   const [loading, setLoading] = useState(false);
+  const isBooking = !!initialBooking;
 
   useEffect(() => {
-    loadOrderDetails();
-  }, [initialOrder.id]);
+    if (isBooking) {
+      loadBookingDetails();
+    } else {
+      loadOrderDetails();
+    }
+  }, [isBooking ? initialBooking?.id : initialOrder?.id]);
 
   const loadOrderDetails = async () => {
     try {
@@ -72,8 +79,22 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
     }
   };
 
+  const loadBookingDetails = async () => {
+    try {
+      setLoading(true);
+      const bookingDetails = await serviceBookingAPI.getBookingById(initialBooking.id);
+      setOrder(bookingDetails);
+    } catch (error) {
+      console.error('Error loading booking details:', error);
+      Alert.alert('Error', 'Failed to load booking details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'scheduled': return theme.colors.primary;
       case 'pending': return theme.colors.primary;
       case 'confirmed': return '#4CAF50';
       case 'in_progress': return '#FF9800';
@@ -85,6 +106,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'scheduled': return 'calendar-outline';
       case 'pending': return 'time-outline';
       case 'confirmed': return 'checkmark-circle-outline';
       case 'in_progress': return 'construct-outline';
@@ -96,6 +118,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
 
   const getProgressValue = (status: string) => {
     switch (status) {
+      case 'scheduled': return 0.2;
       case 'pending': return 0.2;
       case 'confirmed': return 0.4;
       case 'in_progress': return 0.7;
@@ -123,9 +146,10 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
   };
 
   const handleCancelOrder = async () => {
+    const itemType = isBooking ? 'booking' : 'order';
     Alert.alert(
-      'Cancel Order',
-      'Are you sure you want to cancel this order? This action cannot be undone.',
+      `Cancel ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`,
+      `Are you sure you want to cancel this ${itemType}? This action cannot be undone.`,
       [
         { text: 'No', style: 'cancel' },
         {
@@ -133,11 +157,15 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await orderAPI.cancelOrder(order.id);
+              if (isBooking) {
+                await serviceBookingAPI.cancelBooking(order.id);
+              } else {
+                await orderAPI.cancelOrder(order.id);
+              }
               setOrder({ ...order, status: 'cancelled' });
-              Alert.alert('Success', 'Order cancelled successfully');
+              Alert.alert('Success', `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} cancelled successfully`);
             } catch (error) {
-              Alert.alert('Error', 'Failed to cancel order');
+              Alert.alert('Error', `Failed to cancel ${itemType}`);
             }
           }
         }
@@ -159,11 +187,12 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
     Linking.openURL('tel:+4916097044182');
   };
 
-  const canCancel = order.status === 'pending' || order.status === 'confirmed';
-  const canReschedule = order.status === 'pending' || order.status === 'confirmed';
+  const canCancel = isBooking ? order.status === 'scheduled' : (order.status === 'pending' || order.status === 'confirmed');
+  const canReschedule = isBooking ? order.status === 'scheduled' : (order.status === 'pending' || order.status === 'confirmed');
 
   return (
     <SafeAreaView style={styles.container}>
+      <AppHeader />
       <ScrollView style={styles.scrollView}>
         {/* Order Status */}
         <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
@@ -189,9 +218,9 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
             />
             
             <View style={styles.statusSteps}>
-              <View style={[styles.statusStep, order.status !== 'cancelled' && (order.status === 'pending' || order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? styles.activeStep : styles.inactiveStep]}>
-                <Ionicons name="checkmark-circle" size={20} color={order.status !== 'cancelled' && (order.status === 'pending' || order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? '#4CAF50' : '#E0E0E0'} />
-                <Text variant="bodySmall" style={styles.stepText}>Order Placed</Text>
+              <View style={[styles.statusStep, order.status !== 'cancelled' && (order.status === 'scheduled' || order.status === 'pending' || order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? styles.activeStep : styles.inactiveStep]}>
+                <Ionicons name="checkmark-circle" size={20} color={order.status !== 'cancelled' && (order.status === 'scheduled' || order.status === 'pending' || order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? '#4CAF50' : '#E0E0E0'} />
+                <Text variant="bodySmall" style={styles.stepText}>{isBooking ? 'Booking Placed' : 'Order Placed'}</Text>
               </View>
               
               <View style={[styles.statusStep, order.status !== 'cancelled' && (order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? styles.activeStep : styles.inactiveStep]}>
@@ -253,10 +282,10 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
             
             <View style={styles.infoRow}>
               <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Order Number
+                {isBooking ? 'Booking Number' : 'Order Number'}
               </Text>
               <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-                #{order.orderNumber}
+                #{isBooking ? order.id.slice(-8) : order.orderNumber}
               </Text>
             </View>
             
@@ -265,7 +294,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
                 Service Date
               </Text>
               <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-                {formatDate(order.serviceDate)}
+                {formatDate(isBooking ? order.booking_date : order.serviceDate)}
               </Text>
             </View>
             
@@ -274,7 +303,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
                 Service Time
               </Text>
               <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-                {formatTime(order.serviceTime)}
+                {formatTime(isBooking ? order.booking_time : order.serviceTime)}
               </Text>
             </View>
             
@@ -283,7 +312,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
                 Total Amount
               </Text>
               <Text variant="titleMedium" style={[styles.infoValue, { color: theme.colors.primary, fontWeight: 'bold' }]}>
-                €{(order.totalAmount || 0).toFixed(2)}
+                €{(isBooking ? order.total_amount : order.totalAmount || 0).toFixed(2)}
               </Text>
             </View>
           </Card.Content>
@@ -300,19 +329,27 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
             <View style={styles.addressContainer}>
               <Ionicons name="location-outline" size={20} color={theme.colors.onSurfaceVariant} />
               <View style={styles.addressText}>
-                <Text variant="bodyMedium" style={[styles.addressLine, { color: theme.colors.onSurface }]}>
-                  {order.address.street_address}
-                </Text>
-                <Text variant="bodyMedium" style={[styles.addressLine, { color: theme.colors.onSurface }]}>
-                  {order.address.city}, {order.address.postal_code}
-                </Text>
-                <Text variant="bodyMedium" style={[styles.addressLine, { color: theme.colors.onSurface }]}>
-                  {order.address.country}
-                </Text>
-                {order.address.additional_notes && (
-                  <Text variant="bodySmall" style={[styles.addressNotes, { color: theme.colors.onSurfaceVariant }]}>
-                    Note: {order.address.additional_notes}
+                {isBooking ? (
+                  <Text variant="bodyMedium" style={[styles.addressLine, { color: theme.colors.onSurface }]}>
+                    {order.service_address}
                   </Text>
+                ) : (
+                  <>
+                    <Text variant="bodyMedium" style={[styles.addressLine, { color: theme.colors.onSurface }]}>
+                      {order.address.street_address}
+                    </Text>
+                    <Text variant="bodyMedium" style={[styles.addressLine, { color: theme.colors.onSurface }]}>
+                      {order.address.city}, {order.address.postal_code}
+                    </Text>
+                    <Text variant="bodyMedium" style={[styles.addressLine, { color: theme.colors.onSurface }]}>
+                      {order.address.country}
+                    </Text>
+                    {order.address.additional_notes && (
+                      <Text variant="bodySmall" style={[styles.addressNotes, { color: theme.colors.onSurfaceVariant }]}>
+                        Note: {order.address.additional_notes}
+                      </Text>
+                    )}
+                  </>
                 )}
               </View>
             </View>
@@ -327,26 +364,42 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
             </Text>
             <Divider style={styles.divider} />
             
-            {(order.items || []).map((item, index) => (
-              <View key={index} style={styles.serviceItem}>
+            {isBooking ? (
+              <View style={styles.serviceItem}>
                 <View style={styles.serviceInfo}>
                   <Text variant="bodyLarge" style={[styles.serviceTitle, { color: theme.colors.onSurface }]}>
-                    {item.service_title}
+                    {order.services?.title || 'Service'}
                   </Text>
                   <Text variant="bodyMedium" style={[styles.serviceQuantity, { color: theme.colors.onSurfaceVariant }]}>
-                    Quantity: {item.quantity}
+                    Duration: {order.duration_minutes} minutes
                   </Text>
                 </View>
                 <Text variant="titleMedium" style={[styles.servicePrice, { color: theme.colors.primary }]}>
-                  €{(item.calculated_price || 0).toFixed(2)}
+                  €{(order.total_amount || 0).toFixed(2)}
                 </Text>
               </View>
-            ))}
+            ) : (
+              (order.items || []).map((item, index) => (
+                <View key={index} style={styles.serviceItem}>
+                  <View style={styles.serviceInfo}>
+                    <Text variant="bodyLarge" style={[styles.serviceTitle, { color: theme.colors.onSurface }]}>
+                      {item.service_title}
+                    </Text>
+                    <Text variant="bodyMedium" style={[styles.serviceQuantity, { color: theme.colors.onSurfaceVariant }]}>
+                      Quantity: {item.quantity}
+                    </Text>
+                  </View>
+                  <Text variant="titleMedium" style={[styles.servicePrice, { color: theme.colors.primary }]}>
+                    €{(item.calculated_price || 0).toFixed(2)}
+                  </Text>
+                </View>
+              ))
+            )}
           </Card.Content>
         </Card>
 
         {/* Special Instructions */}
-        {order.specialInstructions && (
+        {(isBooking ? order.special_instructions : order.specialInstructions) && (
           <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
             <Card.Content>
               <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
@@ -354,7 +407,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
               </Text>
               <Divider style={styles.divider} />
               <Text variant="bodyMedium" style={[styles.instructionsText, { color: theme.colors.onSurface }]}>
-                {order.specialInstructions}
+                {isBooking ? order.special_instructions : order.specialInstructions}
               </Text>
             </Card.Content>
           </Card>

@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, Alert, TouchableOpacity } from 'react-nat
 import { Text, Card, Button, Avatar, Divider, useTheme, IconButton, Badge } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import AppHeader from '../components/AppHeader';
 import { useAuth } from '../src/contexts/AuthContext';
 
 const ProfileScreen = ({ navigation }: any) => {
@@ -43,6 +44,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
+      <AppHeader />
       {/* Enhanced Header */}
       <LinearGradient
         colors={[theme.colors.primary, theme.colors.primaryContainer]}

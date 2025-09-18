@@ -12,13 +12,9 @@ const verifyToken = async (req, res, next) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    console.log('Service booking token verification - Token:', token.substring(0, 20) + '...');
-
     // Verify JWT token and get user from mobile_users table
     const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-
-    console.log('Service booking token verification - Decoded:', decoded);
 
     // Get user from mobile_users table
     const { data: user, error } = await supabase
@@ -28,10 +24,7 @@ const verifyToken = async (req, res, next) => {
       .eq('is_active', true)
       .single();
 
-    console.log('Service booking token verification - User query result:', { user, error });
-
     if (error || !user) {
-      console.error('Service booking token verification - User not found:', error);
       return res.status(401).json({ error: 'Invalid token or user not found' });
     }
 
@@ -77,6 +70,90 @@ router.get('/', verifyToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching bookings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+});
+
+// @desc    Get user's scheduled service bookings
+// @route   GET /api/service-bookings/scheduled
+// @access  Private
+router.get('/scheduled', verifyToken, async (req, res) => {
+  try {
+    const { data: bookings, error } = await supabase
+      .from('service_bookings')
+      .select(`
+        *,
+        services (
+          id,
+          title,
+          description,
+          category,
+          duration
+        )
+      `)
+      .eq('user_id', req.user.id)
+      .eq('status', 'scheduled')
+      .order('booking_date', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching scheduled bookings:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch scheduled bookings'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: bookings
+    });
+  } catch (error) {
+    console.error('Error fetching scheduled bookings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+});
+
+// @desc    Get user's completed service bookings
+// @route   GET /api/service-bookings/completed
+// @access  Private
+router.get('/completed', verifyToken, async (req, res) => {
+  try {
+    const { data: bookings, error } = await supabase
+      .from('service_bookings')
+      .select(`
+        *,
+        services (
+          id,
+          title,
+          description,
+          category,
+          duration
+        )
+      `)
+      .eq('user_id', req.user.id)
+      .eq('status', 'completed')
+      .order('booking_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching completed bookings:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch completed bookings'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: bookings
+    });
+  } catch (error) {
+    console.error('Error fetching completed bookings:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -141,12 +218,8 @@ router.post('/', [
     body('total_amount').isFloat({ min: 0 }).withMessage('Total amount must be a positive number')
   ]
 ], async (req, res) => {
-  console.log('Service booking create - Request body:', req.body);
-  console.log('Service booking create - User:', req.user);
-  
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log('Service booking create - Validation errors:', errors.array());
     return res.status(400).json({
       success: false,
       error: errors.array()[0].msg
@@ -167,20 +240,6 @@ router.post('/', [
       total_amount,
       payment_method = 'pending'
     } = req.body;
-
-    console.log('Service booking create - Extracted data:', {
-      service_id,
-      booking_date,
-      booking_time,
-      duration_minutes,
-      customer_name,
-      customer_email,
-      customer_phone,
-      service_address,
-      special_instructions,
-      total_amount,
-      payment_method
-    });
 
     // Check if service exists
     const { data: service, error: serviceError } = await supabase
@@ -267,7 +326,7 @@ router.put('/:id', [
     body('customer_email').optional().isEmail().withMessage('Valid email is required'),
     body('service_address').optional().notEmpty().withMessage('Service address cannot be empty'),
     body('special_instructions').optional().isString().withMessage('Special instructions must be a string'),
-    body('status').optional().isIn(['scheduled', 'confirmed', 'in_progress', 'completed', 'cancelled']).withMessage('Invalid status')
+    body('status').optional().isIn(['scheduled', 'completed']).withMessage('Invalid status')
   ]
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -294,11 +353,11 @@ router.put('/:id', [
       });
     }
 
-    // Only allow updates if booking is not completed or cancelled
-    if (['completed', 'cancelled'].includes(existingBooking.status)) {
+    // Only allow updates if booking is not completed
+    if (existingBooking.status === 'completed') {
       return res.status(400).json({
         success: false,
-        error: 'Cannot update completed or cancelled booking'
+        error: 'Cannot update completed booking'
       });
     }
 

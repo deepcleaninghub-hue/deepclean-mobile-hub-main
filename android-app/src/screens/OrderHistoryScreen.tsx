@@ -6,59 +6,40 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { Text, Card, Button, Chip, useTheme, Divider, FAB } from 'react-native-paper';
+import { Text, Card, Button, Chip, useTheme, Divider, FAB, SegmentedButtons } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../components/AppHeader';
 import { useAuth } from '../contexts/AuthContext';
-import { orderAPI } from '../services/orderAPI';
-
-interface Order {
-  id: string;
-  orderNumber: string;
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
-  totalAmount: number;
-  serviceDate: string;
-  serviceTime: string;
-  address: {
-    street_address: string;
-    city: string;
-    postal_code: string;
-    country: string;
-  };
-  items: Array<{
-    service_title: string;
-    service_price: number;
-    quantity: number;
-    calculated_price: number;
-  }>;
-  createdAt: string;
-  updatedAt: string;
-  specialInstructions?: string;
-}
+import { serviceBookingAPI, ServiceBooking } from '../services/serviceBookingAPI';
 
 const OrderHistoryScreen = ({ navigation }: any) => {
   const theme = useTheme();
   const { user } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [scheduledBookings, setScheduledBookings] = useState<ServiceBooking[]>([]);
+  const [completedBookings, setCompletedBookings] = useState<ServiceBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'>('all');
+  const [activeTab, setActiveTab] = useState<'scheduled' | 'completed'>('scheduled');
 
   useEffect(() => {
-    loadOrders();
+    loadBookings();
   }, [user]);
 
-  const loadOrders = async () => {
+  const loadBookings = async () => {
     if (!user?.id) return;
     
     try {
       setLoading(true);
-      const userOrders = await orderAPI.getUserOrders(user.id);
-      setOrders(userOrders);
+      const [scheduled, completed] = await Promise.all([
+        serviceBookingAPI.getScheduledBookings(),
+        serviceBookingAPI.getCompletedBookings()
+      ]);
+      setScheduledBookings(scheduled);
+      setCompletedBookings(completed);
     } catch (error) {
-      console.error('Error loading orders:', error);
-      Alert.alert('Error', 'Failed to load orders');
+      console.error('Error loading bookings:', error);
+      Alert.alert('Error', 'Failed to load bookings');
     } finally {
       setLoading(false);
     }
@@ -66,28 +47,22 @@ const OrderHistoryScreen = ({ navigation }: any) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadOrders();
+    await loadBookings();
     setRefreshing(false);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return theme.colors.primary;
-      case 'confirmed': return '#4CAF50';
-      case 'in_progress': return '#FF9800';
-      case 'completed': return '#2196F3';
-      case 'cancelled': return theme.colors.error;
+      case 'scheduled': return theme.colors.primary;
+      case 'completed': return '#4CAF50';
       default: return theme.colors.onSurfaceVariant;
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return 'time-outline';
-      case 'confirmed': return 'checkmark-circle-outline';
-      case 'in_progress': return 'construct-outline';
-      case 'completed': return 'checkmark-done-outline';
-      case 'cancelled': return 'close-circle-outline';
+      case 'scheduled': return 'calendar-outline';
+      case 'completed': return 'checkmark-circle-outline';
       default: return 'help-circle-outline';
     }
   };
@@ -109,14 +84,14 @@ const OrderHistoryScreen = ({ navigation }: any) => {
     });
   };
 
-  const handleOrderPress = (order: Order) => {
-    navigation.navigate('OrderDetails', { order });
+  const handleBookingPress = (booking: ServiceBooking) => {
+    navigation.navigate('OrderDetails', { booking });
   };
 
-  const handleCancelOrder = async (orderId: string) => {
+  const handleCancelBooking = async (bookingId: string) => {
     Alert.alert(
-      'Cancel Order',
-      'Are you sure you want to cancel this order?',
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking?',
       [
         { text: 'No', style: 'cancel' },
         {
@@ -124,11 +99,11 @@ const OrderHistoryScreen = ({ navigation }: any) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await orderAPI.cancelOrder(orderId);
-              await loadOrders();
-              Alert.alert('Success', 'Order cancelled successfully');
+              await serviceBookingAPI.cancelBooking(bookingId);
+              await loadBookings();
+              Alert.alert('Success', 'Booking cancelled successfully');
             } catch (error) {
-              Alert.alert('Error', 'Failed to cancel order');
+              Alert.alert('Error', 'Failed to cancel booking');
             }
           }
         }
@@ -136,18 +111,7 @@ const OrderHistoryScreen = ({ navigation }: any) => {
     );
   };
 
-  const filteredOrders = orders.filter(order => 
-    selectedFilter === 'all' || order.status === selectedFilter
-  );
-
-  const filterOptions = [
-    { key: 'all', label: 'All Orders', count: orders.length },
-    { key: 'pending', label: 'Pending', count: orders.filter(o => o.status === 'pending').length },
-    { key: 'confirmed', label: 'Confirmed', count: orders.filter(o => o.status === 'confirmed').length },
-    { key: 'in_progress', label: 'In Progress', count: orders.filter(o => o.status === 'in_progress').length },
-    { key: 'completed', label: 'Completed', count: orders.filter(o => o.status === 'completed').length },
-    { key: 'cancelled', label: 'Cancelled', count: orders.filter(o => o.status === 'cancelled').length },
-  ];
+  const currentBookings = activeTab === 'scheduled' ? scheduledBookings : completedBookings;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -159,44 +123,43 @@ const OrderHistoryScreen = ({ navigation }: any) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Filter Chips */}
-        <View style={styles.filterContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {(filterOptions || []).map((filter) => (
-              <Chip
-                key={filter.key}
-                selected={selectedFilter === filter.key}
-                onPress={() => setSelectedFilter(filter.key as any)}
-                style={[
-                  styles.filterChip,
-                  selectedFilter === filter.key && { backgroundColor: theme.colors.primary }
-                ]}
-                textStyle={{
-                  color: selectedFilter === filter.key ? theme.colors.onPrimary : theme.colors.onSurface
-                }}
-              >
-                {filter.label} ({filter.count})
-              </Chip>
-            ))}
-          </ScrollView>
+        {/* Tab Buttons */}
+        <View style={styles.tabContainer}>
+          <SegmentedButtons
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as 'scheduled' | 'completed')}
+            buttons={[
+              {
+                value: 'scheduled',
+                label: `Scheduled (${scheduledBookings.length})`,
+                icon: 'calendar-clock',
+              },
+              {
+                value: 'completed',
+                label: `Completed (${completedBookings.length})`,
+                icon: 'check-circle',
+              },
+            ]}
+            style={styles.segmentedButtons}
+          />
         </View>
 
-        {/* Orders List */}
+        {/* Bookings List */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <Text>Loading orders...</Text>
+            <Text>Loading bookings...</Text>
           </View>
-        ) : filteredOrders.length === 0 ? (
+        ) : currentBookings.length === 0 ? (
           <Card style={[styles.emptyCard, { backgroundColor: theme.colors.surface }]}>
             <Card.Content style={styles.emptyContent}>
-              <Ionicons name="receipt-outline" size={64} color={theme.colors.onSurfaceVariant} />
+              <Ionicons name="calendar-outline" size={64} color={theme.colors.onSurfaceVariant} />
               <Text variant="headlineSmall" style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>
-                No orders found
+                No {activeTab} bookings found
               </Text>
               <Text variant="bodyMedium" style={[styles.emptySubtitle, { color: theme.colors.onSurfaceVariant }]}>
-                {selectedFilter === 'all' 
-                  ? "You haven't placed any orders yet"
-                  : `No ${selectedFilter} orders found`
+                {activeTab === 'scheduled' 
+                  ? "You don't have any scheduled bookings yet"
+                  : "You don't have any completed bookings yet"
                 }
               </Text>
               <Button
@@ -210,29 +173,29 @@ const OrderHistoryScreen = ({ navigation }: any) => {
           </Card>
         ) : (
           <View style={styles.ordersContainer}>
-            {(filteredOrders || []).map((order, index) => (
+            {(currentBookings || []).map((booking, index) => (
               <Card 
-                key={order.id} 
+                key={booking.id} 
                 style={[styles.orderCard, { backgroundColor: theme.colors.surface }]}
-                onPress={() => handleOrderPress(order)}
+                onPress={() => handleBookingPress(booking)}
               >
                 <Card.Content>
                   <View style={styles.orderHeader}>
                     <View style={styles.orderInfo}>
                       <Text variant="titleMedium" style={[styles.orderNumber, { color: theme.colors.onSurface }]}>
-                        Order #{order.orderNumber}
+                        Booking #{booking.id.slice(-8)}
                       </Text>
                       <Text variant="bodySmall" style={[styles.orderDate, { color: theme.colors.onSurfaceVariant }]}>
-                        {formatDate(order.createdAt)}
+                        {formatDate(booking.created_at)}
                       </Text>
                     </View>
                     <Chip
                       mode="outlined"
-                      textStyle={{ color: getStatusColor(order.status) }}
-                      style={{ borderColor: getStatusColor(order.status) }}
-                      icon={getStatusIcon(order.status)}
+                      textStyle={{ color: getStatusColor(booking.status) }}
+                      style={{ borderColor: getStatusColor(booking.status) }}
+                      icon={getStatusIcon(booking.status)}
                     >
-                      {order.status.replace('_', ' ').toUpperCase()}
+                      {booking.status.replace('_', ' ').toUpperCase()}
                     </Chip>
                   </View>
 
@@ -241,33 +204,33 @@ const OrderHistoryScreen = ({ navigation }: any) => {
                   <View style={styles.orderDetails}>
                     <View style={styles.serviceInfo}>
                       <Text variant="bodyMedium" style={[styles.serviceTitle, { color: theme.colors.onSurface }]}>
-                        {order.items.length} service{order.items.length > 1 ? 's' : ''}
+                        {booking.services?.title || 'Service'}
                       </Text>
                       <Text variant="bodySmall" style={[styles.serviceDate, { color: theme.colors.onSurfaceVariant }]}>
-                        {formatDate(order.serviceDate)} at {formatTime(order.serviceTime)}
+                        {formatDate(booking.booking_date)} at {formatTime(booking.booking_time)}
                       </Text>
                       <Text variant="bodySmall" style={[styles.serviceAddress, { color: theme.colors.onSurfaceVariant }]}>
-                        {order.address.street_address}, {order.address.city}
+                        {booking.service_address}
                       </Text>
                     </View>
                     <Text variant="titleLarge" style={[styles.orderTotal, { color: theme.colors.primary }]}>
-                      €{(order.totalAmount || 0).toFixed(2)}
+                      €{(booking.total_amount || 0).toFixed(2)}
                     </Text>
                   </View>
 
                   <View style={styles.orderActions}>
                     <Button
                       mode="outlined"
-                      onPress={() => handleOrderPress(order)}
+                      onPress={() => handleBookingPress(booking)}
                       style={styles.actionButton}
                       compact
                     >
                       View Details
                     </Button>
-                    {order.status === 'pending' && (
+                    {booking.status === 'scheduled' && (
                       <Button
                         mode="outlined"
-                        onPress={() => handleCancelOrder(order.id)}
+                        onPress={() => handleCancelBooking(booking.id)}
                         style={[styles.actionButton, styles.cancelButton]}
                         textColor={theme.colors.error}
                         compact
@@ -300,12 +263,12 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  filterContainer: {
+  tabContainer: {
     padding: 16,
     paddingBottom: 8,
   },
-  filterChip: {
-    marginRight: 8,
+  segmentedButtons: {
+    marginBottom: 8,
   },
   loadingContainer: {
     flex: 1,
