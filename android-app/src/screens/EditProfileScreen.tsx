@@ -54,7 +54,7 @@ const EditProfileScreen = () => {
           postal_code: profileData.postal_code || '',
           country: profileData.country || 'Germany',
           date_of_birth: profileData.date_of_birth || '',
-          gender: profileData.gender || undefined
+          gender: profileData.gender
         });
       }
     } catch (error) {
@@ -89,33 +89,36 @@ const EditProfileScreen = () => {
   const validateForm = (): boolean => {
     const newErrors: {[key: string]: string} = {};
 
-    if (!formData.first_name?.trim()) {
-      newErrors.first_name = 'First name is required';
+    // Only validate fields that have been modified and are not empty
+    if (formData.first_name !== undefined && formData.first_name !== '' && !formData.first_name.trim()) {
+      newErrors.first_name = 'First name cannot be empty';
     }
 
-    if (!formData.last_name?.trim()) {
-      newErrors.last_name = 'Last name is required';
+    if (formData.last_name !== undefined && formData.last_name !== '' && !formData.last_name.trim()) {
+      newErrors.last_name = 'Last name cannot be empty';
     }
 
-    if (!formData.email?.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+    if (formData.email !== undefined && formData.email !== '') {
+      if (!formData.email.trim()) {
+        newErrors.email = 'Email cannot be empty';
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = 'Please enter a valid email';
+      }
     }
 
-    if (formData.phone && formData.phone.length < 10) {
+    if (formData.phone && formData.phone.length > 0 && formData.phone.length < 10) {
       newErrors.phone = 'Phone number must be at least 10 characters';
     }
 
-    if (formData.address && formData.address.length < 5) {
+    if (formData.address && formData.address.length > 0 && formData.address.length < 5) {
       newErrors.address = 'Address must be at least 5 characters';
     }
 
-    if (formData.city && formData.city.length < 2) {
+    if (formData.city && formData.city.length > 0 && formData.city.length < 2) {
       newErrors.city = 'City must be at least 2 characters';
     }
 
-    if (formData.postal_code && formData.postal_code.length < 3) {
+    if (formData.postal_code && formData.postal_code.length > 0 && formData.postal_code.length < 3) {
       newErrors.postal_code = 'Postal code must be at least 3 characters';
     }
 
@@ -130,10 +133,45 @@ const EditProfileScreen = () => {
 
     try {
       setSaving(true);
-      const result = await profileAPI.updateProfile(formData);
+      
+      // Only send fields that have been changed from the original profile
+      const changedFields: UpdateProfileData = {};
+      
+      if (profile) {
+        Object.keys(formData).forEach(key => {
+          const fieldKey = key as keyof UpdateProfileData;
+          const currentValue = formData[fieldKey];
+          const originalValue = profile[fieldKey as keyof UserProfile];
+          
+          // Only include fields that have actually changed and have meaningful values
+          // Normalize values for comparison (treat null, undefined, and empty string as equivalent)
+          const normalizedCurrent = currentValue === '' || currentValue === null ? undefined : currentValue;
+          const normalizedOriginal = originalValue === '' || originalValue === null ? undefined : originalValue;
+          
+          if (normalizedCurrent !== undefined && 
+              normalizedCurrent !== normalizedOriginal) {
+            // Handle gender field type casting
+            if (fieldKey === 'gender') {
+              changedFields[fieldKey] = currentValue as 'male' | 'female' | 'other' | 'prefer_not_to_say';
+            } else {
+              changedFields[fieldKey] = currentValue;
+            }
+          }
+        });
+      }
+
+      // If no fields have changed, show a message
+      if (Object.keys(changedFields).length === 0) {
+        Alert.alert('No Changes', 'No changes were made to save.');
+        return;
+      }
+
+      console.log('Sending only changed fields:', changedFields);
+      const result = await profileAPI.updateProfile(changedFields);
       
       if (result.success && result.data) {
         setProfile(result.data);
+        // Update the AuthContext with the new data without making another API call
         updateUser(result.data);
         Alert.alert('Success', result.message || 'Profile updated successfully');
       } else {
