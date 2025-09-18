@@ -162,7 +162,7 @@ const OrderHistoryScreen = ({ navigation }: any) => {
         {/* Filter Chips */}
         <View style={styles.filterContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {filterOptions.map((filter) => (
+            {(filterOptions || []).map((filter) => (
               <Chip
                 key={filter.key}
                 selected={selectedFilter === filter.key}
@@ -210,7 +210,7 @@ const OrderHistoryScreen = ({ navigation }: any) => {
           </Card>
         ) : (
           <View style={styles.ordersContainer}>
-            {filteredOrders.map((order, index) => (
+            {(filteredOrders || []).map((order, index) => (
               <Card 
                 key={order.id} 
                 style={[styles.orderCard, { backgroundColor: theme.colors.surface }]}
@@ -251,7 +251,7 @@ const OrderHistoryScreen = ({ navigation }: any) => {
                       </Text>
                     </View>
                     <Text variant="titleLarge" style={[styles.orderTotal, { color: theme.colors.primary }]}>
-                      €{order.totalAmount.toFixed(2)}
+                      €{(order.totalAmount || 0).toFixed(2)}
                     </Text>
                   </View>
 

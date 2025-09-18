@@ -65,11 +65,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         cartAPI.getCartItems(),
         cartAPI.getCartSummary()
       ]);
-      setCartItems(items);
-      setCartSummary(summary);
+      setCartItems(items || []);
+      setCartSummary(summary || { totalItems: 0, totalPrice: 0 });
     } catch (error) {
       console.error('Error refreshing cart:', error);
-      // Don't show error to user, just log it
+      // Set fallback values to prevent undefined errors
+      setCartItems([]);
+      setCartSummary({ totalItems: 0, totalPrice: 0 });
     } finally {
       setLoading(false);
     }

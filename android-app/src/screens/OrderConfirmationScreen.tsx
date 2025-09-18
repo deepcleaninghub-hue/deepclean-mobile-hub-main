@@ -96,7 +96,7 @@ const OrderConfirmationScreen = ({ navigation, route }: any) => {
                 Total Amount:
               </Text>
               <Text variant="bodyLarge" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
-                €{order.total_amount.toFixed(2)}
+                €{(order.total_amount || 0).toFixed(2)}
               </Text>
             </View>
           </Card.Content>
@@ -141,18 +141,21 @@ const OrderConfirmationScreen = ({ navigation, route }: any) => {
             </Text>
             <Divider style={styles.divider} />
             
-            {order.items.map((item: any, index: number) => (
+            {(order.items || []).map((item: any, index: number) => (
               <View key={index} style={styles.serviceItem}>
                 <View style={styles.serviceInfo}>
                   <Text variant="bodyLarge" style={{ color: theme.colors.onSurface }}>
                     {item.service_title}
                   </Text>
                   <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                    Duration: {item.service_duration || '2 hours'}
+                  </Text>
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
                     Quantity: {item.quantity}
                   </Text>
                 </View>
                 <Text variant="bodyLarge" style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>
-                  €{item.calculated_price.toFixed(2)}
+                  €{(item.calculated_price || 0).toFixed(2)}
                 </Text>
               </View>
             ))}

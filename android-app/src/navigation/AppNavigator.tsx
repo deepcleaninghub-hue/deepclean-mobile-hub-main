@@ -7,10 +7,12 @@ import HomeScreen from '../screens/HomeScreen';
 import ServicesScreen from '../screens/ServicesScreen';
 import ContactScreen from '../screens/ContactScreen';
 import CartScreen from '../screens/CartScreen';
+import CheckoutScreen from '../screens/CheckoutScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
 import OrderDetailsScreen from '../screens/OrderDetailsScreen';
+import OrderConfirmationScreen from '../screens/OrderConfirmationScreen';
 import BookingScreen from '../screens/BookingScreen';
 import { theme } from '../utils/theme';
 
@@ -32,6 +34,16 @@ const ProfileStack = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProfileMain" component={ProfileScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+    </Stack.Navigator>
+  );
+};
+
+const CartStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="CartMain" component={CartScreen} />
+      <Stack.Screen name="Checkout" component={CheckoutScreen} />
+      <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
     </Stack.Navigator>
   );
 };
@@ -102,7 +114,7 @@ const AppNavigator = () => {
       />
       <Tab.Screen 
         name="Cart" 
-        component={CartScreen} 
+        component={CartStack} 
         options={{ title: 'Cart' }}
       />
       <Tab.Screen 

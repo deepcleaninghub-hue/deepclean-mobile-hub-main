@@ -21,6 +21,7 @@ const uploadRoutes = require('./routes/upload');
 const cartRoutes = require('./routes/cart');
 const profileRoutes = require('./routes/profile');
 const orderRoutes = require('./routes/orders');
+const serviceBookingRoutes = require('./routes/serviceBookings');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -88,6 +89,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/service-bookings', serviceBookingRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../src/contexts/CartContext';
 import { useAuth } from '../src/contexts/AuthContext';
 
-const CartScreen = () => {
+const CartScreen = ({ navigation }: any) => {
   const theme = useTheme();
   const { user, isAuthenticated } = useAuth();
   const { 
@@ -23,8 +23,7 @@ const CartScreen = () => {
       // Navigate to login screen
       return;
     }
-    // TODO: Implement checkout functionality
-    console.log('Checkout pressed');
+    navigation.navigate('Checkout');
   };
 
   const handleClearCart = () => {
@@ -96,7 +95,7 @@ const CartScreen = () => {
                   Category: {item.service_category}
                 </Text>
                 <Text variant="titleLarge" style={[styles.itemPrice, { color: theme.colors.primary }]}>
-                  €{item.calculated_price.toFixed(2)}
+                  €{(item.calculated_price || 0).toFixed(2)}
                 </Text>
               </View>
                   
@@ -145,7 +144,7 @@ const CartScreen = () => {
                 Subtotal
               </Text>
               <Text variant="bodyLarge" style={[styles.summaryValue, { color: theme.colors.onSurface }]}>
-                €{cartSummary.totalPrice.toFixed(2)}
+                €{(cartSummary?.totalPrice || 0).toFixed(2)}
               </Text>
             </View>
             <View style={styles.summaryRow}>
@@ -162,7 +161,7 @@ const CartScreen = () => {
                 Total
               </Text>
               <Text variant="titleLarge" style={[styles.totalValue, { color: theme.colors.primary }]}>
-                €{(cartSummary.totalPrice + 5.99).toFixed(2)}
+                €{((cartSummary?.totalPrice || 0) + 5.99).toFixed(2)}
               </Text>
             </View>
           </Card.Content>

@@ -6,6 +6,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Text, Card, Button, TextInput, useTheme, Divider, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +14,7 @@ import AppHeader from '../components/AppHeader';
 import { useCart } from '../src/contexts/CartContext';
 import { useAuth } from '../src/contexts/AuthContext';
 import { OrderAddress } from '../src/config/supabase';
+import { serviceBookingAPI, CreateServiceBookingData } from '../src/services/serviceBookingAPI';
 
 const CheckoutScreen = ({ navigation, route }: any) => {
   const theme = useTheme();
@@ -37,17 +39,29 @@ const CheckoutScreen = ({ navigation, route }: any) => {
 
   // Date picker handlers
   const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
     if (selectedDate) {
       setServiceDate(selectedDate);
     }
   };
 
   const handleTimeChange = (event: any, selectedTime?: Date) => {
-    setShowTimePicker(false);
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+    }
     if (selectedTime) {
       setServiceTime(selectedTime);
     }
+  };
+
+  const handleDateConfirm = () => {
+    setShowDatePicker(false);
+  };
+
+  const handleTimeConfirm = () => {
+    setShowTimePicker(false);
   };
 
   const validateForm = () => {
@@ -90,20 +104,75 @@ const CheckoutScreen = ({ navigation, route }: any) => {
         }))
       };
 
-      // For now, just simulate order creation
-      // In a real app, this would call the order API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('Starting to create service bookings...');
+      console.log('Cart items:', cartItems);
+      console.log('User:', user);
+      console.log('Service date:', serviceDate.toISOString().split('T')[0]);
+      console.log('Service time:', serviceTime.toTimeString().split(' ')[0]);
+      
+      // Create service bookings for each cart item
+      const bookingPromises = cartItems.map(async (item, index) => {
+        console.log(`Creating booking for item ${index + 1}:`, item);
+        
+        const bookingData: CreateServiceBookingData = {
+          service_id: item.service_id,
+          booking_date: serviceDate.toISOString().split('T')[0],
+          booking_time: serviceTime.toTimeString().split(' ')[0].substring(0, 5), // Convert to HH:MM format
+          duration_minutes: parseInt(item.service_duration?.split('-')[0]) * 60 || 120, // Convert hours to minutes
+          customer_name: `${user?.first_name} ${user?.last_name}`,
+          customer_email: user?.email || '',
+          customer_phone: user?.phone,
+          service_address: `${address.street_address}, ${address.city}, ${address.postal_code}, ${address.country}`,
+          special_instructions: specialInstructions || address.additional_notes,
+          total_amount: item.calculated_price || item.service_price,
+          payment_method: 'pending'
+        };
+
+        console.log(`Booking data for item ${index + 1}:`, bookingData);
+        
+        try {
+          const result = await serviceBookingAPI.createBooking(bookingData);
+          console.log(`Successfully created booking for item ${index + 1}:`, result);
+          return result;
+        } catch (itemError) {
+          console.error(`Error creating booking for item ${index + 1}:`, itemError);
+          throw itemError;
+        }
+      });
+
+      // Create all bookings
+      console.log('Creating all bookings...');
+      const createdBookings = await Promise.all(bookingPromises);
+      console.log('All bookings created successfully:', createdBookings);
       
       // Clear cart and navigate to confirmation
+      console.log('Clearing cart...');
       await clearCart();
+      console.log('Navigating to confirmation...');
+      
+      // Generate unique order ID
+      const uniqueOrderId = `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
       navigation.navigate('OrderConfirmation', { 
-        orderId: 'ORDER_' + Date.now(),
-        orderData: orderData
+        orderId: uniqueOrderId,
+        orderData: {
+          service_date: serviceDate.toISOString().split('T')[0],
+          service_time: serviceTime.toTimeString().split(' ')[0].substring(0, 5),
+          total_amount: cartSummary.totalPrice,
+          items: createdBookings.map((booking, index) => ({
+            service_title: cartItems[index]?.service_title || 'Service',
+            calculated_price: booking.total_amount,
+            quantity: 1,
+            service_duration: `${booking.duration_minutes / 60} hours`
+          })),
+          address: address,
+          bookings: createdBookings
+        }
       });
       
     } catch (error) {
-      console.error('Error placing order:', error);
-      Alert.alert('Error', 'Failed to place order. Please try again.');
+      console.error('Error creating service bookings:', error);
+      Alert.alert('Error', `Failed to create service bookings: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -185,7 +254,7 @@ const CheckoutScreen = ({ navigation, route }: any) => {
                 Total
               </Text>
               <Text variant="titleLarge" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
-                €{cartSummary.totalPrice.toFixed(2)}
+                €{(cartSummary?.totalPrice || 0).toFixed(2)}
               </Text>
             </View>
           </Card.Content>
@@ -312,9 +381,70 @@ const CheckoutScreen = ({ navigation, route }: any) => {
           style={[styles.placeOrderButton, { backgroundColor: theme.colors.primary }]}
           contentStyle={styles.buttonContent}
         >
-          {loading ? 'Placing Order...' : `Place Order - €${cartSummary.totalPrice.toFixed(2)}`}
+          {loading ? 'Placing Order...' : `Place Order - €${(cartSummary?.totalPrice || 0).toFixed(2)}`}
         </Button>
       </ScrollView>
+
+      {/* Date Picker */}
+      {showDatePicker && (
+        <View style={styles.pickerContainer}>
+          <DateTimePicker
+            value={serviceDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleDateChange}
+            minimumDate={new Date()}
+          />
+          {Platform.OS === 'ios' && (
+            <View style={styles.pickerButtons}>
+              <Button
+                mode="outlined"
+                onPress={() => setShowDatePicker(false)}
+                style={styles.pickerButton}
+              >
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleDateConfirm}
+                style={styles.pickerButton}
+              >
+                OK
+              </Button>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Time Picker */}
+      {showTimePicker && (
+        <View style={styles.pickerContainer}>
+          <DateTimePicker
+            value={serviceTime}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleTimeChange}
+          />
+          {Platform.OS === 'ios' && (
+            <View style={styles.pickerButtons}>
+              <Button
+                mode="outlined"
+                onPress={() => setShowTimePicker(false)}
+                style={styles.pickerButton}
+              >
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleTimeConfirm}
+                style={styles.pickerButton}
+              >
+                OK
+              </Button>
+            </View>
+          )}
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -401,6 +531,30 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     borderRadius: 8,
+  },
+  pickerContainer: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  pickerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 16,
+    paddingHorizontal: 20,
+  },
+  pickerButton: {
+    flex: 1,
+    marginHorizontal: 8,
   },
 });
 

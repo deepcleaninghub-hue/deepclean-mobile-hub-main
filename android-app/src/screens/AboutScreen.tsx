@@ -153,7 +153,7 @@ const AboutScreen = () => {
             Our Numbers
           </Text>
           <View style={styles.statsGrid}>
-            {stats.map((stat, index) => (
+            {(stats || []).map((stat, index) => (
               <Card key={index} style={[styles.statCard, { backgroundColor: theme.colors.surface }]}>
                 <Card.Content style={styles.statContent}>
                   <Text variant="displaySmall" style={[styles.statNumber, { color: theme.colors.primary }]}>
@@ -178,7 +178,7 @@ const AboutScreen = () => {
               Our dedicated team of professionals is committed to delivering exceptional service and exceeding your expectations.
             </Text>
             
-            {teamMembers.map((member) => (
+            {(teamMembers || []).map((member) => (
               <View key={member.id} style={styles.memberItem}>
                 <Avatar.Image size={60} source={{ uri: member.image }} />
                 <View style={styles.memberInfo}>
