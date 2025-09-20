@@ -22,6 +22,7 @@ const cartRoutes = require('./routes/cart');
 const profileRoutes = require('./routes/profile');
 const orderRoutes = require('./routes/orders');
 const serviceBookingRoutes = require('./routes/serviceBookings');
+const serviceOptionsRoutes = require('./routes/serviceOptions');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -90,6 +91,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/service-bookings', serviceBookingRoutes);
+app.use('/api/service-options', serviceOptionsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -106,11 +108,12 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Deep Cleaning Hub API server running on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`📚 API base: http://localhost:${PORT}/api`);
+  console.log(`🌐 Network access: http://192.168.29.65:${PORT}/health`);
 });
 
 // Graceful shutdown

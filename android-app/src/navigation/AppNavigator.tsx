@@ -14,6 +14,7 @@ import OrderHistoryScreen from '../screens/OrderHistoryScreen';
 import OrderDetailsScreen from '../screens/OrderDetailsScreen';
 import OrderConfirmationScreen from '../screens/OrderConfirmationScreen';
 import BookingScreen from '../screens/BookingScreen';
+import ServiceOptionsScreen from '../screens/ServiceOptionsScreen';
 import { theme } from '../utils/theme';
 
 const Tab = createBottomTabNavigator();
@@ -25,6 +26,7 @@ const MainStack = () => {
       <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
       <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
       <Stack.Screen name="Booking" component={BookingScreen} />
+      <Stack.Screen name="ServiceOptions" component={ServiceOptionsScreen} />
     </Stack.Navigator>
   );
 };
@@ -42,6 +44,7 @@ const CartStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="CartMain" component={CartScreen} />
+      <Stack.Screen name="ServiceOptions" component={ServiceOptionsScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
       <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
     </Stack.Navigator>

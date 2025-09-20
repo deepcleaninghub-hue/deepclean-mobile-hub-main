@@ -44,8 +44,18 @@ const initializeDatabase = async () => {
       await supabase.rpc('create_admin_users_table');
     }
 
+    // Create service options table
+    const { error: serviceOptionsError } = await supabase.rpc('create_service_options_table');
+    if (serviceOptionsError && !serviceOptionsError.message.includes('already exists')) {
+      console.log('Creating service options table...');
+      await supabase.rpc('create_service_options_table');
+    }
+
     // Insert default services if they don't exist
     await insertDefaultServices();
+    
+    // Insert default service options
+    await insertDefaultServiceOptions();
     
     console.log('✅ Database schema initialized successfully');
   } catch (error) {
@@ -137,6 +147,144 @@ const insertDefaultServices = async () => {
     console.log('✅ Default services inserted/updated');
   } catch (error) {
     console.log('Note: Services table might not exist yet or services already exist');
+  }
+};
+
+// Insert default service options
+const insertDefaultServiceOptions = async () => {
+  const defaultServiceOptions = [
+    // Kitchen Cleaning Options
+    {
+      id: 'kitchen-basic-clean',
+      title: 'Basic Kitchen Clean',
+      description: 'Standard kitchen cleaning including countertops, sink, and appliances',
+      service_id: 'kitchen-cleaning',
+      price: 80,
+      duration: '2-3 hours',
+      features: ['Countertop cleaning', 'Sink sanitization', 'Appliance exterior cleaning'],
+      is_active: true
+    },
+    {
+      id: 'kitchen-deep-clean',
+      title: 'Deep Kitchen Clean',
+      description: 'Comprehensive kitchen cleaning including inside appliances and detailed scrubbing',
+      service_id: 'kitchen-cleaning',
+      price: 120,
+      duration: '3-4 hours',
+      features: ['Inside appliance cleaning', 'Cabinet interior cleaning', 'Deep grease removal', 'Grout cleaning'],
+      is_active: true
+    },
+    {
+      id: 'kitchen-premium-clean',
+      title: 'Premium Kitchen Clean',
+      description: 'Complete kitchen transformation with all surfaces, appliances, and storage areas',
+      service_id: 'kitchen-cleaning',
+      price: 180,
+      duration: '4-6 hours',
+      features: ['Complete appliance cleaning', 'Cabinet organization', 'Pantry cleaning', 'Backsplash deep clean'],
+      is_active: true
+    },
+    
+    // Deep Cleaning Options
+    {
+      id: 'deep-clean-1bed',
+      title: '1 Bedroom Deep Clean',
+      description: 'Complete deep cleaning for 1 bedroom apartment',
+      service_id: 'deep-cleaning',
+      price: 120,
+      duration: '4-5 hours',
+      features: ['All rooms', 'Bathroom deep clean', 'Kitchen deep clean', 'Living area'],
+      is_active: true
+    },
+    {
+      id: 'deep-clean-2bed',
+      title: '2 Bedroom Deep Clean',
+      description: 'Complete deep cleaning for 2 bedroom apartment',
+      service_id: 'deep-cleaning',
+      price: 180,
+      duration: '6-8 hours',
+      features: ['All rooms', 'Multiple bathrooms', 'Kitchen deep clean', 'Living areas'],
+      is_active: true
+    },
+    {
+      id: 'deep-clean-3bed',
+      title: '3+ Bedroom Deep Clean',
+      description: 'Complete deep cleaning for 3+ bedroom home',
+      service_id: 'deep-cleaning',
+      price: 250,
+      duration: '8-10 hours',
+      features: ['All rooms', 'Multiple bathrooms', 'Kitchen deep clean', 'Living areas', 'Basement/Attic'],
+      is_active: true
+    },
+    
+    // House Moving Options
+    {
+      id: 'moving-local',
+      title: 'Local House Moving',
+      description: 'Complete local moving service within the city',
+      service_id: 'house-moving',
+      price: 150,
+      duration: '4-6 hours',
+      features: ['Furniture disassembly', 'Packing assistance', 'Transportation', 'Reassembly'],
+      is_active: true
+    },
+    {
+      id: 'moving-long-distance',
+      title: 'Long Distance Moving',
+      description: 'Complete long distance moving service with packing and transport',
+      service_id: 'house-moving',
+      price: 300,
+      duration: '8-12 hours',
+      features: ['Complete packing', 'Furniture protection', 'Long distance transport', 'Unpacking assistance'],
+      is_active: true
+    },
+    
+    // Furniture Assembly Options
+    {
+      id: 'furniture-ikea',
+      title: 'IKEA Furniture Assembly',
+      description: 'Professional assembly of IKEA furniture with warranty',
+      service_id: 'furniture-assembly',
+      price: 60,
+      duration: '1-2 hours',
+      features: ['IKEA furniture', 'Tool provided', 'Warranty included', 'Cleanup included'],
+      is_active: true
+    },
+    {
+      id: 'furniture-office',
+      title: 'Office Furniture Assembly',
+      description: 'Assembly of office desks, chairs, and storage units',
+      service_id: 'furniture-assembly',
+      price: 80,
+      duration: '2-3 hours',
+      features: ['Office desks', 'Office chairs', 'Storage units', 'Cable management'],
+      is_active: true
+    },
+    {
+      id: 'furniture-bedroom',
+      title: 'Bedroom Furniture Assembly',
+      description: 'Assembly of bedroom furniture including beds, dressers, and nightstands',
+      service_id: 'furniture-assembly',
+      price: 100,
+      duration: '2-4 hours',
+      features: ['Bed assembly', 'Dresser assembly', 'Nightstand setup', 'Mirror installation'],
+      is_active: true
+    }
+  ];
+
+  try {
+    for (const option of defaultServiceOptions) {
+      const { error } = await supabase
+        .from('service_options')
+        .upsert(option, { onConflict: 'id' });
+      
+      if (error) {
+        console.log(`Service option ${option.id} already exists or error:`, error.message);
+      }
+    }
+    console.log('✅ Default service options inserted/updated');
+  } catch (error) {
+    console.log('Note: Service options table might not exist yet or options already exist');
   }
 };
 
