@@ -108,4 +108,20 @@ export const servicesAPI = {
       return [];
     }
   },
+
+  // Get all unique categories
+  async getCategories(): Promise<string[]> {
+    try {
+      const response = await httpClient.get<{success: boolean, data: string[]}>('/services/categories');
+      
+      if (response.success && response.data) {
+        return response.data;
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error in getCategories:', error);
+      return [];
+    }
+  },
 };

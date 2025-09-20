@@ -1,17 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Alert } from 'react-native';
 import { cartAPI, CartItem, CartSummary } from '../services/cartAPI';
+import { serviceOptionsAPI, ServiceCategory } from '../services/serviceOptionsAPI';
 import { useAuth } from './AuthContext';
 
 interface CartContextType {
   cartItems: CartItem[];
   cartSummary: CartSummary;
+  serviceCategories: ServiceCategory[];
   loading: boolean;
   addToCart: (service: any, calculatedPrice?: number, userInputs?: any) => Promise<boolean>;
   removeFromCart: (cartItemId: string) => Promise<boolean>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<boolean>;
   clearCart: () => Promise<boolean>;
   refreshCart: () => Promise<void>;
+  refreshServiceCategories: () => Promise<void>;
   isServiceInCart: (serviceId: string) => boolean;
 }
 
@@ -36,12 +39,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     totalItems: 0,
     totalPrice: 0
   });
+  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Load cart when user changes
+  // Load cart and service categories when user changes
   useEffect(() => {
     if (user && isAuthenticated) {
       refreshCart();
+      refreshServiceCategories();
     } else {
       // Clear cart when user logs out
       setCartItems([]);
@@ -49,6 +54,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         totalItems: 0,
         totalPrice: 0
       });
+      setServiceCategories([]);
     }
   }, [user, isAuthenticated]);
 
@@ -74,6 +80,18 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       setCartSummary({ totalItems: 0, totalPrice: 0 });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Refresh service categories
+  const refreshServiceCategories = async () => {
+    try {
+      console.log('Refreshing service categories...');
+      const categories = await serviceOptionsAPI.getServiceCategories();
+      console.log('Service categories response:', categories);
+      setServiceCategories(categories);
+    } catch (error) {
+      console.error('Error refreshing service categories:', error);
     }
   };
 
@@ -186,12 +204,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const value: CartContextType = {
     cartItems,
     cartSummary,
+    serviceCategories,
     loading,
     addToCart,
     removeFromCart,
     updateQuantity,
     clearCart,
     refreshCart,
+    refreshServiceCategories,
     isServiceInCart
   };
 

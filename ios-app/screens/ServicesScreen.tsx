@@ -12,14 +12,17 @@ import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../components/AppHeader';
 import ServiceCard from '../components/ServiceCard';
 import { servicesAPI } from '../src/services/api';
+import { serviceOptionsAPI } from '../src/services/serviceOptionsAPI';
 
 const ServicesScreen = () => {
   const theme = useTheme();
   const [services, setServices] = useState<any[]>([]);
+  const [serviceOptions, setServiceOptions] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showServiceOptions, setShowServiceOptions] = useState(false);
 
   // Fetch services and categories from API
   useEffect(() => {
@@ -30,20 +33,20 @@ const ServicesScreen = () => {
     try {
       setLoading(true);
       
-      // Fetch services and categories in parallel
-      const [servicesData, categoriesData] = await Promise.all([
-        servicesAPI.getAllServices(),
-        servicesAPI.getCategories()
-      ]);
-      
+      // Fetch main services for categories
+      const servicesData = await servicesAPI.getAllServices();
       setServices(servicesData);
       
-      // Add 'All' category at the beginning
-      const allCategories = ['All', ...categoriesData];
-      setCategories(allCategories);
+      // Fetch all service options for "All" tab
+      const allServiceOptions = await serviceOptionsAPI.getAllServiceOptions();
+      setServiceOptions(allServiceOptions);
+      
+      // Use service titles as categories instead of separate categories
+      const serviceTitles = ['All', ...servicesData.map(service => service.title)];
+      setCategories(serviceTitles);
     } catch (error) {
       console.error('Error fetching data:', error);
-      Alert.alert('Error', 'Failed to load services and categories');
+      Alert.alert('Error', 'Failed to load services');
     } finally {
       setLoading(false);
     }
@@ -73,24 +76,33 @@ const ServicesScreen = () => {
     setSelectedCategory(category);
     
     if (category === 'All') {
-      // Show all services
-      await fetchServices();
+      // Show all service options when "All" is selected
+      setShowServiceOptions(true);
+      // Service options are already loaded in fetchData
     } else {
-      // Fetch services for specific category
-      try {
-        setLoading(true);
-        const categoryServices = await servicesAPI.getServicesByCategory(category);
-        setServices(categoryServices);
-      } catch (error) {
-        console.error('Error fetching services by category:', error);
-        Alert.alert('Error', 'Failed to load services for this category');
-      } finally {
-        setLoading(false);
+      // Find the selected service to get its ID
+      const selectedService = services.find(service => service.title === category);
+      if (selectedService) {
+        try {
+          setLoading(true);
+          const options = await serviceOptionsAPI.getServiceOptionsByCategory(selectedService.id);
+          setServiceOptions(options);
+          setShowServiceOptions(true);
+        } catch (error) {
+          console.error('Error fetching service options:', error);
+          Alert.alert('Error', 'Failed to load service options');
+          setShowServiceOptions(false);
+          setServiceOptions([]);
+        } finally {
+          setLoading(false);
+        }
       }
     }
   };
 
-  const filteredServices = services; // Services are already filtered by category selection
+  const filteredServices = selectedCategory === 'All' 
+    ? services 
+    : services.filter(service => service.title === selectedCategory);
 
   const handleBookService = (service: any) => {
     // Navigate to booking screen
@@ -148,27 +160,31 @@ const ServicesScreen = () => {
                 Loading services...
               </Text>
             </View>
-          ) : filteredServices.length === 0 ? (
+          ) : serviceOptions.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="search-outline" size={64} color={theme.colors.outline} />
               <Text variant="headlineSmall" style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>
-                No Services Found
+                No Service Options Found
               </Text>
               <Text variant="bodyLarge" style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
-                No services available in this category
+                {selectedCategory === 'All' 
+                  ? 'No service options available' 
+                  : `No options available for ${selectedCategory}`
+                }
               </Text>
             </View>
           ) : (
-            (filteredServices || []).map((service) => (
+            // Show service options (either all or filtered by category)
+            serviceOptions.map((option) => (
               <ServiceCard
-                key={service.id || Math.random().toString()}
-                id={service.id || ''}
-                title={service.title || ''}
-                description={service.description || ''}
-                image={service.image || ''}
-                price={service.price}
-                duration={service.duration || ''}
-                category={service.category || ''}
+                key={option.id || Math.random().toString()}
+                id={option.id || ''}
+                title={option.title || ''}
+                description={option.description || ''}
+                image={option.image || ''}
+                price={option.price}
+                duration={option.duration || ''}
+                category={option.services?.category || ''}
               />
             ))
           )}
