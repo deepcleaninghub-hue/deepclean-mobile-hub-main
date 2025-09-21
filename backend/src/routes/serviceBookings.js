@@ -117,8 +117,13 @@ router.get('/scheduled', verifyToken, async (req, res) => {
           id,
           title,
           description,
-          category,
-          duration
+          category
+        ),
+        service_variants (
+          id,
+          title,
+          duration,
+          price
         )
       `)
       .eq('user_id', req.user.id)
@@ -159,8 +164,13 @@ router.get('/completed', verifyToken, async (req, res) => {
           id,
           title,
           description,
-          category,
-          duration
+          category
+        ),
+        service_variants (
+          id,
+          title,
+          duration,
+          price
         )
       `)
       .eq('user_id', req.user.id)
@@ -201,8 +211,13 @@ router.get('/:id', verifyToken, async (req, res) => {
           id,
           title,
           description,
-          category,
-          duration
+          category
+        ),
+        service_variants (
+          id,
+          title,
+          duration,
+          price
         )
       `)
       .eq('id', req.params.id)
@@ -411,8 +426,13 @@ router.put('/:id', [
           id,
           title,
           description,
-          category,
-          duration
+          category
+        ),
+        service_variants (
+          id,
+          title,
+          duration,
+          price
         )
       `)
       .single();

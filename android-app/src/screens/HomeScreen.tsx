@@ -1,10 +1,11 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   Linking,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Text, Button, Card, useTheme } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,12 +16,14 @@ import Svg, { Path } from 'react-native-svg';
 import ServiceCard from '../components/ServiceCard';
 import ImageCarousel from '../components/ImageCarousel';
 import AppHeader from '../components/AppHeader';
+import { servicesAPI, Service } from '../services/servicesAPI';
 
 const HomeScreen = ({ navigation }: any) => {
   const theme = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const carouselImages = [
+  // PERFORMANCE FIX: State management for API data
+  const [carouselImages, setCarouselImages] = useState([
     {
       id: 'kitchen-cleaning-hero',
       uri: require('../assets/images/kitchen-cleaning.png'),
@@ -51,49 +54,153 @@ const HomeScreen = ({ navigation }: any) => {
       title: 'Professional Hand Cleaning',
       description: 'Thorough cleaning with professional equipment and techniques',
     },
-  ];
+  ]);
+  
+  const [featuredServices, setFeaturedServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const featuredServices = [
-    {
-      id: 'kitchen-cleaning',
-      title: 'Kitchen Deep Cleaning',
-      description: 'Thorough cleaning of your kitchen including appliances, cabinets, and surfaces for a spotless cooking environment.',
-      image: 'https://deepcleaninghub.com/wp-content/uploads/2025/08/man-cleaning-cabinet-with-rag-1-2048x1363-1.jpg',
-    },
-    {
-      id: 'house-moving',
-      title: 'House Moving',
-      description: 'Professional moving services to help you relocate your home with care and efficiency.',
-      image: 'https://deepcleaninghub.com/wp-content/uploads/2025/08/puls-furnture-assembly-services-included-1024x684-1-1.webp',
-    },
-    {
-      id: 'deep-cleaning',
-      title: 'Deep Cleaning',
-      description: 'Comprehensive deep cleaning services for homes, hotels, and commercial spaces.',
-      image: 'https://deepcleaninghub.com/wp-content/uploads/2025/08/shutterstock_1628546512-1.jpg',
-    },
-    {
-      id: 'furniture-assembly',
-      title: 'Furniture Assembly',
-      description: 'Expert furniture assembly services for all your home and office furniture needs.',
-      image: 'https://deepcleaninghub.com/wp-content/uploads/2025/08/puls-furnture-assembly-services-included-1024x684-1.webp',
-    },
-  ];
+  // PERFORMANCE FIX: Load data from API
+  useEffect(() => {
+    loadFeaturedServices();
+  }, []);
 
-  const handleCallNow = () => {
+  const loadFeaturedServices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch featured services from API
+      const services = await servicesAPI.getAllServices();
+      setFeaturedServices(services.slice(0, 4)); // Take first 4 as featured
+    } catch (err) {
+      console.error('Error loading featured services:', err);
+      setError('Failed to load services. Please try again.');
+      
+      // Fallback to hardcoded data
+      setFeaturedServices([
+        {
+          id: 'kitchen-cleaning',
+          title: 'Kitchen Deep Cleaning',
+          description: 'Thorough cleaning of your kitchen including appliances, cabinets, and surfaces for a spotless cooking environment.',
+          category: 'cleaning',
+          pricing_type: 'fixed',
+          display_order: 1,
+          is_active: true,
+          service_variants: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: 'house-moving',
+          title: 'House Moving',
+          description: 'Professional moving services to help you relocate your home with care and efficiency.',
+          category: 'moving',
+          pricing_type: 'fixed',
+          display_order: 2,
+          is_active: true,
+          service_variants: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: 'deep-cleaning',
+          title: 'Deep Cleaning',
+          description: 'Comprehensive deep cleaning services for homes, hotels, and commercial spaces.',
+          category: 'cleaning',
+          pricing_type: 'fixed',
+          display_order: 3,
+          is_active: true,
+          service_variants: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          id: 'furniture-assembly',
+          title: 'Furniture Assembly',
+          description: 'Expert furniture assembly services for all your home and office furniture needs.',
+          category: 'assembly',
+          pricing_type: 'fixed',
+          display_order: 4,
+          is_active: true,
+          service_variants: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // PERFORMANCE FIX: Memoized callbacks
+  const handleCallNow = useCallback(() => {
     Linking.openURL('tel:+4916097044182').catch(() => {
       Alert.alert('Error', 'Could not open phone app');
     });
-  };
+  }, []);
 
-  const handleGetInTouch = () => {
+  const handleGetInTouch = useCallback(() => {
     navigation.navigate('Contact');
-  };
+  }, [navigation]);
 
-  const handleBookService = () => {
-    // Navigate to contact screen or booking form
-    Alert.alert('Book Service', 'Redirecting to contact form...');
-  };
+  const handleBookService = useCallback(() => {
+    navigation.navigate('Services');
+  }, [navigation]);
+
+  const handleRetry = useCallback(() => {
+    loadFeaturedServices();
+  }, []);
+
+  // PERFORMANCE FIX: Memoized styles
+  const memoizedStyles = useMemo(() => ({
+    heroTitle: [styles.heroTitle, { color: theme.colors.onSurface }],
+    heroDescription: [styles.heroDescription, { color: theme.colors.onSurfaceVariant }],
+    featureTitle: [styles.featureTitle, { color: theme.colors.primary }],
+    featureDescription: [styles.featureDescription, { color: theme.colors.onSurfaceVariant }],
+    ctaTitle: [styles.ctaTitle, { color: theme.colors.onSurface }],
+    ctaDescription: [styles.ctaDescription, { color: theme.colors.onSurfaceVariant }],
+  }), [theme.colors]);
+
+  // PERFORMANCE FIX: Loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <AppHeader />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={[styles.loadingText, { color: theme.colors.onSurface }]}>
+            Loading services...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // PERFORMANCE FIX: Error state
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <AppHeader />
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={64} color={theme.colors.error} />
+          <Text style={[styles.errorTitle, { color: theme.colors.onSurface }]}>
+            Oops! Something went wrong
+          </Text>
+          <Text style={[styles.errorMessage, { color: theme.colors.onSurfaceVariant }]}>
+            {error}
+          </Text>
+          <Button
+            mode="contained"
+            onPress={handleRetry}
+            style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
+          >
+            Try Again
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -117,10 +224,10 @@ const HomeScreen = ({ navigation }: any) => {
                   </Svg>
                 </View>
                 <View style={styles.featureContent}>
-                  <Text variant="titleMedium" style={[styles.featureTitle, { color: theme.colors.primary }]}>
+                  <Text variant="titleMedium" style={memoizedStyles.featureTitle}>
                     Professional Excellence
                   </Text>
-                  <Text variant="bodyMedium" style={[styles.featureDescription, { color: theme.colors.onSurfaceVariant }]}>
+                  <Text variant="bodyMedium" style={memoizedStyles.featureDescription}>
                     Reliable, skilled, and detail-oriented experts.
                   </Text>
                 </View>
@@ -133,10 +240,10 @@ const HomeScreen = ({ navigation }: any) => {
                   </Svg>
                 </View>
                 <View style={styles.featureContent}>
-                  <Text variant="titleMedium" style={[styles.featureTitle, { color: theme.colors.primary }]}>
+                  <Text variant="titleMedium" style={memoizedStyles.featureTitle}>
                     Time Efficiency
                   </Text>
-                  <Text variant="bodyMedium" style={[styles.featureDescription, { color: theme.colors.onSurfaceVariant }]}>
+                  <Text variant="bodyMedium" style={memoizedStyles.featureDescription}>
                     Efficient cleaning that fits your schedule.
                   </Text>
                 </View>
@@ -149,10 +256,10 @@ const HomeScreen = ({ navigation }: any) => {
                   </Svg>
                 </View>
                 <View style={styles.featureContent}>
-                  <Text variant="titleMedium" style={[styles.featureTitle, { color: theme.colors.primary }]}>
+                  <Text variant="titleMedium" style={memoizedStyles.featureTitle}>
                     Secure Transactions
                   </Text>
-                  <Text variant="bodyMedium" style={[styles.featureDescription, { color: theme.colors.onSurfaceVariant }]}>
+                  <Text variant="bodyMedium" style={memoizedStyles.featureDescription}>
                     Fast, safe, and easy transactions.
                   </Text>
                 </View>
@@ -275,11 +382,35 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
         </View>
 
+        {/* Featured Services Section */}
+        {featuredServices.length > 0 && (
+          <View style={styles.featuredServicesSection}>
+            <Text variant="headlineMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+              Featured Services
+            </Text>
+            <Text variant="bodyLarge" style={[styles.sectionSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+              Discover our most popular cleaning solutions
+            </Text>
+            <View style={styles.servicesGrid}>
+              {featuredServices.slice(0, 4).map((service) => (
+                <ServiceCard
+                  key={service.id}
+                  id={service.id}
+                  title={service.title}
+                  description={service.description}
+                  image="https://deepcleaninghub.com/wp-content/uploads/2025/08/man-cleaning-cabinet-with-rag-1-2048x1363-1.jpg"
+                  onSelectService={() => navigation.navigate('Services')}
+                />
+              ))}
+            </View>
+          </View>
+        )}
+
           <View style={styles.heroContent}>
-            <Text variant="displaySmall" style={[styles.heroTitle, { color: theme.colors.onSurface }]}>
+            <Text variant="displaySmall" style={memoizedStyles.heroTitle}>
               Deep Cleaning Excellence for Homes, Hotels, and More
             </Text>
-            <Text variant="bodyLarge" style={[styles.heroDescription, { color: theme.colors.onSurfaceVariant }]}>
+            <Text variant="bodyLarge" style={memoizedStyles.heroDescription}>
               Providing top-tier cleaning solutions tailored for every space, ensuring a spotless and hygienic environment
             </Text>
             <View style={styles.heroButtons}>
@@ -308,10 +439,10 @@ const HomeScreen = ({ navigation }: any) => {
         {/* Call to Action */}
         <Card style={[styles.ctaCard, { backgroundColor: theme.colors.surfaceVariant }]}>
           <Card.Content style={styles.ctaContent}>
-            <Text variant="titleLarge" style={[styles.ctaTitle, { color: theme.colors.onSurface }]}>
+            <Text variant="titleLarge" style={memoizedStyles.ctaTitle}>
               Need a Custom Quote?
             </Text>
-            <Text variant="bodyMedium" style={[styles.ctaDescription, { color: theme.colors.onSurfaceVariant }]}>
+            <Text variant="bodyMedium" style={memoizedStyles.ctaDescription}>
               Contact us for personalized cleaning solutions tailored to your specific needs.
             </Text>
             <View style={styles.ctaButtons}>
@@ -665,6 +796,59 @@ const styles = StyleSheet.create({
   ctaButtonOutlined: {
     flex: 1,
     borderRadius: 8,
+  },
+
+  // PERFORMANCE FIX: New styles for loading, error, and featured services
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retryButton: {
+    borderRadius: 8,
+  },
+  featuredServicesSection: {
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  sectionTitle: {
+    textAlign: 'center',
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  sectionSubtitle: {
+    textAlign: 'center',
+    marginBottom: 32,
+    opacity: 0.8,
+  },
+  servicesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 16,
   },
 });
 

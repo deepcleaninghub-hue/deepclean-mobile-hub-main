@@ -1,15 +1,106 @@
 // Simple HTTP client for React Native compatibility
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://192.168.29.65:5001/api';
+// Environment-based configuration
+const BASE_URL = __DEV__ 
+  ? 'http://192.168.29.65:5001/api'
+  : 'https://api.deepcleanhub.com/api';
 
 interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   headers?: Record<string, string>;
   body?: any;
+  timeout?: number;
+  retries?: number;
+}
+
+interface RetryConfig {
+  maxRetries: number;
+  baseDelay: number;
+  maxDelay: number;
 }
 
 class SimpleHttpClient {
+  private retryConfig: RetryConfig = {
+    maxRetries: 3,
+    baseDelay: 1000,
+    maxDelay: 10000,
+  };
+
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private async requestWithRetry<T>(url: string, config: RequestInit, options: HttpOptions = {}): Promise<T> {
+    const maxRetries = options.retries ?? this.retryConfig.maxRetries;
+    let lastError: Error;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Add timeout
+        const timeout = options.timeout || 10000;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+        const response = await fetch(url, {
+          ...config,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        // SECURITY FIX: Only log in development mode
+        if (__DEV__) {
+          console.log(`Attempt ${attempt + 1}: Response status:`, response.status);
+        }
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (__DEV__) {
+            console.error(`Attempt ${attempt + 1}: HTTP error response:`, errorData);
+          }
+          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        }
+
+        if (response.status === 204) {
+          if (__DEV__) {
+            console.log('No content response');
+          }
+          return {} as T;
+        }
+
+        const responseData = await response.json();
+        if (__DEV__) {
+          console.log('Response data:', responseData);
+        }
+        return responseData;
+
+      } catch (error) {
+        lastError = error as Error;
+        
+        // Don't retry on certain errors
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Request timeout');
+        }
+
+        if (attempt < maxRetries) {
+          const delay = Math.min(
+            this.retryConfig.baseDelay * Math.pow(2, attempt),
+            this.retryConfig.maxDelay
+          );
+          
+          if (__DEV__) {
+            console.log(`Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+          }
+          
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    throw lastError!;
+  }
+
   private async request<T>(endpoint: string, options: HttpOptions = {}): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
     
@@ -22,13 +113,19 @@ class SimpleHttpClient {
       ...options.headers,
     };
 
-    console.log('=== HTTP CLIENT DEBUG ===');
-    console.log('Making request to:', url);
-    console.log('Method:', options.method || 'GET');
-    console.log('Token from storage:', token ? `Token found: ${token.substring(0, 20)}...` : 'No token found');
-    console.log('Full token:', token);
-    console.log('Headers:', headers);
-    console.log('Body:', options.body);
+    // SECURITY FIX: Only log in development mode, never log full tokens
+    if (__DEV__) {
+      console.log('=== HTTP CLIENT DEBUG ===');
+      console.log('Making request to:', url);
+      console.log('Method:', options.method || 'GET');
+      console.log('Token exists:', !!token);
+      console.log('Token preview:', token ? `${token.substring(0, 10)}...` : 'No token');
+      console.log('Headers (sanitized):', {
+        ...headers,
+        Authorization: headers.Authorization ? 'Bearer [REDACTED]' : undefined
+      });
+      console.log('Body:', options.body);
+    }
 
     const config: RequestInit = {
       method: options.method || 'GET',
@@ -40,27 +137,11 @@ class SimpleHttpClient {
     }
 
     try {
-      const response = await fetch(url, config);
-      
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('HTTP error response:', errorData);
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-
-      if (response.status === 204) {
-        console.log('No content response');
-        return {} as T; // No content
-      }
-
-      const responseData = await response.json();
-      console.log('Response data:', responseData);
-      return responseData;
+      return await this.requestWithRetry<T>(url, config, options);
     } catch (error) {
-      console.error('HTTP request failed:', error);
+      if (__DEV__) {
+        console.error('HTTP request failed:', error);
+      }
       throw error;
     }
   }
