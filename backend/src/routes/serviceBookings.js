@@ -464,10 +464,18 @@ router.put('/:id', [
 // @access  Private
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
+    const { reason } = req.body;
+
     // Check if booking exists and belongs to user
     const { data: existingBooking, error: fetchError } = await supabase
       .from('service_bookings')
-      .select('id, status')
+      .select(`
+        *,
+        services (
+          name,
+          price
+        )
+      `)
       .eq('id', req.params.id)
       .eq('user_id', req.user.id)
       .single();
@@ -492,6 +500,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
       .from('service_bookings')
       .update({
         status: 'cancelled',
+        cancellation_reason: reason || 'Cancelled by user',
         updated_at: new Date().toISOString()
       })
       .eq('id', req.params.id)
@@ -506,6 +515,44 @@ router.delete('/:id', verifyToken, async (req, res) => {
         error: 'Failed to cancel booking'
       });
     }
+
+    // Send cancellation notifications (async, don't wait for response)
+    setImmediate(async () => {
+      try {
+        const emailService = require('../services/emailService');
+        
+        // Prepare booking data for notifications
+        const bookingData = {
+          customerName: req.user.name || req.user.email,
+          customerEmail: req.user.email,
+          customerPhone: req.user.phone || 'Not provided',
+          orderId: `BOOKING-${booking.id}`,
+          orderDate: new Date(existingBooking.created_at).toLocaleDateString(),
+          serviceDate: new Date(existingBooking.service_date).toLocaleDateString(),
+          serviceTime: existingBooking.service_time || 'Not specified',
+          totalAmount: existingBooking.total_amount || 0,
+          services: [{
+            name: existingBooking.services?.name || 'Service Booking',
+            price: `€${existingBooking.services?.price || existingBooking.total_amount || 0}`
+          }],
+          address: existingBooking.service_address || {
+            street_address: 'Not provided',
+            city: 'Not provided',
+            postal_code: 'Not provided',
+            country: 'Not provided'
+          },
+          cancellationReason: reason || 'Cancelled by user',
+          cancelledBy: 'Customer'
+        };
+
+        // Send cancellation notifications
+        await emailService.sendCancellationEmails(bookingData);
+        console.log('✅ Booking cancellation notifications sent successfully');
+      } catch (notificationError) {
+        console.error('❌ Error sending booking cancellation notifications:', notificationError);
+        // Don't fail the cancellation if notifications fail
+      }
+    });
 
     res.json({
       success: true,

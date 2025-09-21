@@ -311,6 +311,30 @@ router.put('/:orderId/cancel', verifyToken, async (req, res) => {
     const { orderId } = req.params;
     const { reason } = req.body;
 
+    // Get order details before cancellation for notifications
+    const { data: existingOrder, error: fetchError } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items (
+          *,
+          services (
+            name,
+            price
+          )
+        )
+      `)
+      .eq('id', orderId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (fetchError || !existingOrder) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
     // Update order status to cancelled
     const { data: order, error } = await supabase
       .from('orders')
@@ -330,6 +354,44 @@ router.put('/:orderId/cancel', verifyToken, async (req, res) => {
         error: 'Order not found or cancellation failed'
       });
     }
+
+    // Send cancellation notifications (async, don't wait for response)
+    setImmediate(async () => {
+      try {
+        const emailService = require('../services/emailService');
+        
+        // Prepare order data for notifications
+        const orderData = {
+          customerName: req.user.name || req.user.email,
+          customerEmail: req.user.email,
+          customerPhone: req.user.phone || 'Not provided',
+          orderId: order.id,
+          orderDate: new Date(existingOrder.created_at).toLocaleDateString(),
+          serviceDate: new Date(existingOrder.delivery_address?.service_date || existingOrder.created_at).toLocaleDateString(),
+          serviceTime: existingOrder.delivery_address?.service_time || 'Not specified',
+          totalAmount: existingOrder.total_amount,
+          services: existingOrder.order_items?.map(item => ({
+            name: item.services?.name || 'Service',
+            price: `€${item.price}`
+          })) || [],
+          address: existingOrder.delivery_address || {
+            street_address: 'Not provided',
+            city: 'Not provided',
+            postal_code: 'Not provided',
+            country: 'Not provided'
+          },
+          cancellationReason: reason || 'Cancelled by user',
+          cancelledBy: 'Customer'
+        };
+
+        // Send cancellation notifications
+        await emailService.sendCancellationEmails(orderData);
+        console.log('✅ Cancellation notifications sent successfully');
+      } catch (notificationError) {
+        console.error('❌ Error sending cancellation notifications:', notificationError);
+        // Don't fail the cancellation if notifications fail
+      }
+    });
 
     res.json({
       success: true,
