@@ -68,6 +68,7 @@ export interface ServiceBooking {
   id: string;
   user_id?: string;
   service_id: string;
+  service_variant_id?: string;
   booking_date: string;
   booking_time: string;
   duration_minutes: number;

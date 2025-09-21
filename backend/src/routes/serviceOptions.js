@@ -5,7 +5,7 @@ const { protect, admin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// @desc    Get all service options
+// @desc    Get all service variants (formerly service options)
 // @route   GET /api/service-options
 // @access  Public
 router.get('/', async (req, res) => {
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     const { category, service_id } = req.query;
     
     let query = supabase
-      .from('service_options')
+      .from('service_variants')
       .select(`
         *,
         services (
@@ -34,23 +34,36 @@ router.get('/', async (req, res) => {
       query = query.eq('services.category', category);
     }
 
-    const { data: serviceOptions, error } = await query.order('created_at', { ascending: false });
+    const { data: serviceVariants, error } = await query.order('display_order', { ascending: true });
 
     if (error) {
-      console.error('Error fetching service options:', error);
+      console.error('Error fetching service variants:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      // If table doesn't exist, return empty array instead of error
+      if (error.message && error.message.includes('relation "service_variants" does not exist')) {
+        console.log('Service variants table does not exist, returning empty array');
+        return res.json({
+          success: true,
+          count: 0,
+          data: []
+        });
+      }
+      
       return res.status(500).json({
         success: false,
-        error: 'Error fetching service options'
+        error: 'Error fetching service variants',
+        details: error.message
       });
     }
 
     res.json({
       success: true,
-      count: serviceOptions?.length || 0,
-      data: serviceOptions || []
+      count: serviceVariants?.length || 0,
+      data: serviceVariants || []
     });
   } catch (error) {
-    console.error('Error in get service options:', error);
+    console.error('Error in get service variants:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -58,15 +71,15 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @desc    Get service option by ID
+// @desc    Get service variant by ID
 // @route   GET /api/service-options/:id
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data: serviceOption, error } = await supabase
-      .from('service_options')
+    const { data: serviceVariant, error } = await supabase
+      .from('service_variants')
       .select(`
         *,
         services (
@@ -80,19 +93,19 @@ router.get('/:id', async (req, res) => {
       .eq('is_active', true)
       .single();
 
-    if (error || !serviceOption) {
+    if (error || !serviceVariant) {
       return res.status(404).json({
         success: false,
-        error: 'Service option not found'
+        error: 'Service variant not found'
       });
     }
 
     res.json({
       success: true,
-      data: serviceOption
+      data: serviceVariant
     });
   } catch (error) {
-    console.error('Error in get service option:', error);
+    console.error('Error in get service variant:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -100,7 +113,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @desc    Create new service option (Admin only)
+// @desc    Create new service variant (Admin only)
 // @route   POST /api/service-options
 // @access  Private/Admin
 router.post('/', [
@@ -138,7 +151,7 @@ router.post('/', [
       });
     }
 
-    const serviceOptionData = {
+    const serviceVariantData = {
       ...req.body,
       features: req.body.features || [],
       is_active: req.body.is_active !== undefined ? req.body.is_active : true,
@@ -146,9 +159,9 @@ router.post('/', [
       updated_at: new Date().toISOString()
     };
 
-    const { data: serviceOption, error } = await supabase
-      .from('service_options')
-      .insert([serviceOptionData])
+    const { data: serviceVariant, error } = await supabase
+      .from('service_variants')
+      .insert([serviceVariantData])
       .select(`
         *,
         services (
@@ -160,19 +173,19 @@ router.post('/', [
       .single();
 
     if (error) {
-      console.error('Error creating service option:', error);
+      console.error('Error creating service variant:', error);
       return res.status(500).json({
         success: false,
-        error: 'Error creating service option'
+        error: 'Error creating service variant'
       });
     }
 
     res.status(201).json({
       success: true,
-      data: serviceOption
+      data: serviceVariant
     });
   } catch (error) {
-    console.error('Error in create service option:', error);
+    console.error('Error in create service variant:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -180,7 +193,7 @@ router.post('/', [
   }
 });
 
-// @desc    Update service option (Admin only)
+// @desc    Update service variant (Admin only)
 // @route   PUT /api/service-options/:id
 // @access  Private/Admin
 router.put('/:id', [protect, admin], async (req, res) => {
@@ -191,8 +204,8 @@ router.put('/:id', [protect, admin], async (req, res) => {
       updated_at: new Date().toISOString()
     };
 
-    const { data: serviceOption, error } = await supabase
-      .from('service_options')
+    const { data: serviceVariant, error } = await supabase
+      .from('service_variants')
       .update(updateData)
       .eq('id', id)
       .select(`
@@ -205,19 +218,19 @@ router.put('/:id', [protect, admin], async (req, res) => {
       `)
       .single();
 
-    if (error || !serviceOption) {
+    if (error || !serviceVariant) {
       return res.status(404).json({
         success: false,
-        error: 'Service option not found'
+        error: 'Service variant not found'
       });
     }
 
     res.json({
       success: true,
-      data: serviceOption
+      data: serviceVariant
     });
   } catch (error) {
-    console.error('Error in update service option:', error);
+    console.error('Error in update service variant:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -225,7 +238,7 @@ router.put('/:id', [protect, admin], async (req, res) => {
   }
 });
 
-// @desc    Delete service option (Admin only)
+// @desc    Delete service variant (Admin only)
 // @route   DELETE /api/service-options/:id
 // @access  Private/Admin
 router.delete('/:id', [protect, admin], async (req, res) => {
@@ -233,23 +246,23 @@ router.delete('/:id', [protect, admin], async (req, res) => {
     const { id } = req.params;
 
     const { error } = await supabase
-      .from('service_options')
+      .from('service_variants')
       .delete()
       .eq('id', id);
 
     if (error) {
       return res.status(500).json({
         success: false,
-        error: 'Error deleting service option'
+        error: 'Error deleting service variant'
       });
     }
 
     res.json({
       success: true,
-      message: 'Service option deleted successfully'
+      message: 'Service variant deleted successfully'
     });
   } catch (error) {
-    console.error('Error in delete service option:', error);
+    console.error('Error in delete service variant:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'

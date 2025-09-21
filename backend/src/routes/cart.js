@@ -55,11 +55,11 @@ router.get('/items', verifyToken, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch cart items' });
     }
 
-    // Get service option details for each cart item
+    // Get service variant details for each cart item
     const itemsWithServices = await Promise.all(
       (cartItems || []).map(async (item) => {
-        const { data: serviceOption, error: serviceError } = await supabase
-          .from('service_options')
+        const { data: serviceVariant, error: serviceError } = await supabase
+          .from('service_variants')
           .select(`
             id, title, description, image, price, duration, features,
             services (
@@ -71,23 +71,23 @@ router.get('/items', verifyToken, async (req, res) => {
           .eq('id', item.service_id)
           .single();
 
-        if (serviceError || !serviceOption) {
+        if (serviceError || !serviceVariant) {
           return {
             ...item,
             service: null
           };
         }
 
-        // Format service option data
+        // Format service variant data
         const service = {
-          id: serviceOption.id,
-          title: serviceOption.title,
-          description: serviceOption.description,
-          image: serviceOption.image || '',
-          category: serviceOption.services?.category || 'General',
-          price: serviceOption.price,
-          duration: serviceOption.duration,
-          features: serviceOption.features || []
+          id: serviceVariant.id,
+          title: serviceVariant.title,
+          description: serviceVariant.description,
+          image: serviceVariant.image || '',
+          category: serviceVariant.services?.category || 'General',
+          price: serviceVariant.price,
+          duration: serviceVariant.duration,
+          features: serviceVariant.features || []
         };
 
         return {
@@ -114,9 +114,9 @@ router.post('/items', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Service ID is required' });
     }
 
-    // Get service option details
-    const { data: serviceOption, error: serviceError } = await supabase
-      .from('service_options')
+    // Get service variant details
+    const { data: serviceVariant, error: serviceError } = await supabase
+      .from('service_variants')
       .select(`
         *,
         services (
@@ -128,20 +128,20 @@ router.post('/items', verifyToken, async (req, res) => {
       .eq('id', service_id)
       .single();
 
-    if (serviceError || !serviceOption) {
+    if (serviceError || !serviceVariant) {
       return res.status(404).json({ error: 'Service not found' });
     }
 
-    // Use service option data
+    // Use service variant data
     const service = {
-      id: serviceOption.id,
-      title: serviceOption.title,
-      description: serviceOption.description,
-      image: serviceOption.image || '',
-      category: serviceOption.services?.category || 'General',
-      price: serviceOption.price,
-      duration: serviceOption.duration,
-      features: serviceOption.features || []
+      id: serviceVariant.id,
+      title: serviceVariant.title,
+      description: serviceVariant.description,
+      image: serviceVariant.image || '',
+      category: serviceVariant.services?.category || 'General',
+      price: serviceVariant.price,
+      duration: serviceVariant.duration,
+      features: serviceVariant.features || []
     };
 
     // Check if item already exists in cart

@@ -11,6 +11,14 @@ export interface ServiceOption {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  image?: string;
+  pricing_type?: 'fixed' | 'per_unit';
+  unit_price?: number;
+  unit_measure?: string;
+  min_measurement?: number;
+  max_measurement?: number;
+  measurement_step?: number;
+  measurement_placeholder?: string;
   services?: {
     id: string;
     title: string;

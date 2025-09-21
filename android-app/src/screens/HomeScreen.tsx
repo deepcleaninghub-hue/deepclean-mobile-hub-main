@@ -16,7 +16,7 @@ import ServiceCard from '../components/ServiceCard';
 import ImageCarousel from '../components/ImageCarousel';
 import AppHeader from '../components/AppHeader';
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }: any) => {
   const theme = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -84,6 +84,10 @@ const HomeScreen = () => {
     Linking.openURL('tel:+4916097044182').catch(() => {
       Alert.alert('Error', 'Could not open phone app');
     });
+  };
+
+  const handleGetInTouch = () => {
+    navigation.navigate('Contact');
   };
 
   const handleBookService = () => {
@@ -310,17 +314,31 @@ const HomeScreen = () => {
             <Text variant="bodyMedium" style={[styles.ctaDescription, { color: theme.colors.onSurfaceVariant }]}>
               Contact us for personalized cleaning solutions tailored to your specific needs.
             </Text>
-            <Button
-              mode="contained"
-              onPress={handleCallNow}
-              style={styles.ctaButton}
-              contentStyle={styles.buttonContent}
-              icon={({ size, color }) => (
-                <Ionicons name="call" size={size} color={color} />
-              )}
-            >
-              Call Now: +49-16097044182
-            </Button>
+            <View style={styles.ctaButtons}>
+              <Button
+                mode="contained"
+                onPress={handleCallNow}
+                style={[styles.ctaButton, { backgroundColor: theme.colors.primary }]}
+                contentStyle={styles.buttonContent}
+                icon={({ size, color }) => (
+                  <Ionicons name="call" size={size} color={color} />
+                )}
+              >
+                Call Now
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={handleGetInTouch}
+                style={[styles.ctaButtonOutlined, { borderColor: theme.colors.primary }]}
+                textColor={theme.colors.primary}
+                contentStyle={styles.buttonContent}
+                icon={({ size, color }) => (
+                  <Ionicons name="mail" size={size} color={color} />
+                )}
+              >
+                Get in Touch
+              </Button>
+            </View>
           </Card.Content>
         </Card>
       </ScrollView>
@@ -635,7 +653,17 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     lineHeight: 20,
   },
+  ctaButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
   ctaButton: {
+    flex: 1,
+    borderRadius: 8,
+  },
+  ctaButtonOutlined: {
+    flex: 1,
     borderRadius: 8,
   },
 });

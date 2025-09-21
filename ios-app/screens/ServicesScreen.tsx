@@ -6,7 +6,7 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { Text, Card, Button, Chip, useTheme, ActivityIndicator } from 'react-native-paper';
+import { Text, Card, Button, Chip, useTheme, ActivityIndicator, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../components/AppHeader';
@@ -14,7 +14,7 @@ import ServiceCard from '../components/ServiceCard';
 import { servicesAPI } from '../src/services/api';
 import { serviceOptionsAPI } from '../src/services/serviceOptionsAPI';
 
-const ServicesScreen = () => {
+const ServicesScreen = ({ navigation }: any) => {
   const theme = useTheme();
   const [services, setServices] = useState<any[]>([]);
   const [serviceOptions, setServiceOptions] = useState<any[]>([]);
@@ -23,6 +23,7 @@ const ServicesScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showServiceOptions, setShowServiceOptions] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Fetch services and categories from API
   useEffect(() => {
@@ -104,6 +105,20 @@ const ServicesScreen = () => {
     ? services 
     : services.filter(service => service.title === selectedCategory);
 
+  const filteredServiceOptions = serviceOptions.filter(option => {
+    // Filter by category
+    const categoryMatch = selectedCategory === 'All' || option.services?.title === selectedCategory;
+    
+    // Filter by search query
+    const searchMatch = searchQuery === '' || 
+      option.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      option.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      option.services?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      option.services?.category.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return categoryMatch && searchMatch;
+  });
+
   const handleBookService = (service: any) => {
     // Navigate to booking screen
     console.log('Book service:', service.title);
@@ -113,11 +128,21 @@ const ServicesScreen = () => {
     Alert.alert('Contact Us', 'Calling +49-16097044182...');
   };
 
+  const handleGetInTouch = () => {
+    navigation.navigate('Contact');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader />
       
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.colors.primary]} />
+        }
+      >
         {/* Header Section */}
         <View style={styles.headerSection}>
           <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
@@ -126,6 +151,23 @@ const ServicesScreen = () => {
           <Text variant="bodyLarge" style={[styles.headerDescription, { color: theme.colors.onSurfaceVariant }]}>
             Choose from our comprehensive range of cleaning and moving services
           </Text>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <TextInput
+            mode="outlined"
+            placeholder="Search services..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={[styles.searchInput, { backgroundColor: theme.colors.surface }]}
+            left={<TextInput.Icon icon="magnify" color={theme.colors.onSurfaceVariant} />}
+            right={searchQuery ? <TextInput.Icon icon="close" onPress={() => setSearchQuery('')} color={theme.colors.onSurfaceVariant} /> : null}
+            outlineColor={theme.colors.outline}
+            activeOutlineColor={theme.colors.primary}
+            textColor={theme.colors.onSurface}
+            placeholderTextColor={theme.colors.onSurfaceVariant}
+          />
         </View>
 
         {/* Category Filter */}
@@ -160,22 +202,24 @@ const ServicesScreen = () => {
                 Loading services...
               </Text>
             </View>
-          ) : serviceOptions.length === 0 ? (
+          ) : filteredServiceOptions.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="search-outline" size={64} color={theme.colors.outline} />
               <Text variant="headlineSmall" style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>
-                No Service Options Found
+                {searchQuery ? 'No Search Results' : 'No Service Options Found'}
               </Text>
               <Text variant="bodyLarge" style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
-                {selectedCategory === 'All' 
-                  ? 'No service options available' 
-                  : `No options available for ${selectedCategory}`
+                {searchQuery 
+                  ? `No services found for "${searchQuery}"`
+                  : selectedCategory === 'All' 
+                    ? 'No service options available' 
+                    : `No options available for ${selectedCategory}`
                 }
               </Text>
             </View>
           ) : (
             // Show service options (either all or filtered by category)
-            serviceOptions.map((option) => (
+            filteredServiceOptions.map((option) => (
               <ServiceCard
                 key={option.id || Math.random().toString()}
                 id={option.id || ''}
@@ -206,18 +250,32 @@ const ServicesScreen = () => {
             <Text variant="bodyMedium" style={[styles.ctaDescription, { color: theme.colors.onPrimary }]}>
               Contact us for personalized cleaning solutions tailored to your specific needs.
             </Text>
-            <Button
-              mode="contained"
-              onPress={handleCallNow}
-              style={[styles.ctaButton, { backgroundColor: theme.colors.onPrimary }]}
-              contentStyle={styles.buttonContent}
-              textColor={theme.colors.primary}
-              icon={({ size, color }) => (
-                <Ionicons name="call" size={size} color={color} />
-              )}
-            >
-              Call Now: +49-16097044182
-            </Button>
+            <View style={styles.ctaButtons}>
+              <Button
+                mode="contained"
+                onPress={handleCallNow}
+                style={[styles.ctaButton, { backgroundColor: theme.colors.onPrimary }]}
+                contentStyle={styles.buttonContent}
+                textColor={theme.colors.primary}
+                icon={({ size, color }) => (
+                  <Ionicons name="call" size={size} color={color} />
+                )}
+              >
+                Call Now
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={handleGetInTouch}
+                style={[styles.ctaButtonOutlined, { borderColor: theme.colors.onPrimary }]}
+                textColor={theme.colors.onPrimary}
+                contentStyle={styles.buttonContent}
+                icon={({ size, color }) => (
+                  <Ionicons name="mail" size={size} color={color} />
+                )}
+              >
+                Get in Touch
+              </Button>
+            </View>
           </Card.Content>
         </Card>
       </ScrollView>
@@ -228,24 +286,43 @@ const ServicesScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8f9fa',
   },
-
   scrollView: {
     flex: 1,
   },
   headerSection: {
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
+    backgroundColor: '#ffffff',
+    marginBottom: 8,
   },
   headerTitle: {
     textAlign: 'center',
     marginBottom: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    fontSize: 28,
   },
   headerDescription: {
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
+    fontSize: 16,
+    opacity: 0.8,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  searchInput: {
+    borderRadius: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   categoryContainer: {
     paddingHorizontal: 20,
@@ -255,121 +332,88 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   categoryChip: {
-    marginRight: 8,
+    marginRight: 12,
+    borderRadius: 20,
+    height: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   servicesContainer: {
-    padding: 20,
-    gap: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    gap: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
   },
   emptyTitle: {
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 20,
+    marginBottom: 12,
     textAlign: 'center',
+    fontWeight: '600',
   },
   emptyText: {
     textAlign: 'center',
     opacity: 0.7,
+    lineHeight: 22,
   },
-  serviceCard: {
-    marginBottom: 20,
-    borderRadius: 16,
-    elevation: 3,
+  ctaCard: {
+    margin: 20,
+    borderRadius: 20,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-  },
-  serviceImage: {
-    height: 200,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-  },
-  serviceContent: {
-    padding: 20,
-  },
-  serviceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  serviceTitle: {
-    flex: 1,
-    marginRight: 12,
-    fontWeight: '600',
-  },
-  serviceDescription: {
-    marginBottom: 16,
-    lineHeight: 22,
-  },
-  serviceDetails: {
-    flexDirection: 'row',
-    gap: 20,
-    marginBottom: 16,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  featuresContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
-  },
-  featureChip: {
-    backgroundColor: '#f1f5f9',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  bookButton: {
-    borderRadius: 8,
-  },
-  cartButton: {
-    borderRadius: 8,
-  },
-  buttonContent: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  ctaCard: {
-    margin: 20,
-    borderRadius: 16,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
   ctaContent: {
     alignItems: 'center',
-    padding: 24,
+    padding: 28,
   },
   ctaTitle: {
     textAlign: 'center',
-    marginBottom: 8,
-    fontWeight: 'bold',
+    marginBottom: 12,
+    fontWeight: '700',
+    fontSize: 20,
   },
   ctaDescription: {
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
+    marginBottom: 28,
+    lineHeight: 24,
+    fontSize: 16,
+  },
+  ctaButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
   },
   ctaButton: {
-    borderRadius: 8,
+    flex: 1,
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  ctaButtonOutlined: {
+    flex: 1,
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  buttonContent: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
   },
 });
 

@@ -19,6 +19,24 @@ import { theme } from '../utils/theme';
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
+const HomeStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="Contact" component={ContactScreen} />
+    </Stack.Navigator>
+  );
+};
+
+const ServicesStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ServicesMain" component={ServicesScreen} />
+      <Stack.Screen name="Contact" component={ContactScreen} />
+    </Stack.Navigator>
+  );
+};
+
 const MainStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -59,8 +77,6 @@ const AppNavigator = () => {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Services') {
             iconName = focused ? 'briefcase' : 'briefcase-outline';
-          } else if (route.name === 'Contact') {
-            iconName = focused ? 'call' : 'call-outline';
           } else if (route.name === 'Cart') {
             iconName = focused ? 'cart' : 'cart-outline';
           } else if (route.name === 'Profile') {
@@ -94,23 +110,18 @@ const AppNavigator = () => {
     >
       <Tab.Screen 
         name="Home" 
-        component={HomeScreen} 
+        component={HomeStack} 
         options={{ title: 'Deep Clean Hub' }}
       />
       <Tab.Screen 
         name="Services" 
-        component={ServicesScreen} 
+        component={ServicesStack} 
         options={{ title: 'Our Services' }}
       />
       <Tab.Screen 
         name="Orders" 
         component={MainStack} 
         options={{ title: 'My Orders' }}
-      />
-      <Tab.Screen 
-        name="Contact" 
-        component={ContactScreen} 
-        options={{ title: 'Contact Us' }}
       />
       <Tab.Screen 
         name="Cart" 

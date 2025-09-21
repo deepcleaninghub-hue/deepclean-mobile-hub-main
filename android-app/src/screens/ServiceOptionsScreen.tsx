@@ -4,7 +4,8 @@ import { Text, Card, Button, Chip, Divider, useTheme, ActivityIndicator, IconBut
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { serviceOptionsAPI, ServiceOption } from '../services/serviceOptionsAPI';
+import { servicesAPI, Service, ServiceVariant } from '../services/servicesAPI';
+import { ServiceOption } from '../services/serviceOptionsAPI';
 
 const ServiceOptionsScreen = ({ navigation, route }: any) => {
   const theme = useTheme();
@@ -12,7 +13,7 @@ const ServiceOptionsScreen = ({ navigation, route }: any) => {
   const { addToCart, isServiceInCart } = useCart();
   
   const { serviceId, categoryTitle, categoryDescription } = route.params;
-  const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
+  const [serviceVariants, setServiceVariants] = useState<ServiceVariant[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -23,8 +24,14 @@ const ServiceOptionsScreen = ({ navigation, route }: any) => {
   const loadServiceOptions = async () => {
     try {
       setLoading(true);
-      const options = await serviceOptionsAPI.getServiceOptionsByCategory(serviceId);
-      setServiceOptions(options);
+      const service = await servicesAPI.getServiceById(serviceId);
+      console.log('Fetched service by ID:', service);
+      if (service) {
+        // Ensure service_variants is always an array
+        const variants = service.service_variants || [];
+        console.log('Service variants:', variants);
+        setServiceVariants(variants);
+      }
     } catch (error) {
       console.error('Error loading service options:', error);
     } finally {
@@ -38,17 +45,36 @@ const ServiceOptionsScreen = ({ navigation, route }: any) => {
     setRefreshing(false);
   };
 
-  const handleAddToCart = async (option: ServiceOption) => {
+  const handleAddToCart = async (variant: ServiceVariant) => {
     if (!isAuthenticated) {
       navigation.navigate('Login');
       return;
     }
 
-    if (isServiceInCart(option.id)) {
+    if (isServiceInCart(variant.id)) {
       return; // Already in cart
     }
 
-    const success = await addToCart(option, option.price);
+    // Convert ServiceVariant to ServiceOption format for cart
+    const serviceOption: ServiceOption = {
+      id: variant.id,
+      title: variant.title,
+      description: variant.description,
+      service_id: variant.service_id,
+      price: variant.price,
+      duration: variant.duration,
+      features: variant.features,
+      is_active: variant.is_active,
+      created_at: variant.created_at,
+      updated_at: variant.updated_at,
+      services: {
+        id: serviceId,
+        title: categoryTitle,
+        category: categoryTitle
+      }
+    };
+
+    const success = await addToCart(serviceOption, variant.price);
     if (success) {
       // Optionally navigate back to cart or show success message
     }
@@ -107,7 +133,7 @@ const ServiceOptionsScreen = ({ navigation, route }: any) => {
         </Card>
 
         {/* Service Options */}
-        {serviceOptions.length === 0 ? (
+        {serviceVariants.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="options-outline" size={80} color={theme.colors.outline} />
             <Text variant="headlineSmall" style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>
@@ -118,20 +144,20 @@ const ServiceOptionsScreen = ({ navigation, route }: any) => {
             </Text>
           </View>
         ) : (
-          serviceOptions.map((option, index) => (
-            <Card key={option.id} style={[styles.optionCard, { backgroundColor: theme.colors.surface }]}>
+          serviceVariants.map((variant, index) => (
+            <Card key={variant.id} style={[styles.optionCard, { backgroundColor: theme.colors.surface }]}>
               <Card.Content style={styles.optionContent}>
                 <View style={styles.optionInfo}>
                   <Text variant="titleMedium" style={[styles.optionTitle, { color: theme.colors.onSurface }]}>
-                    {option.title}
+                    {variant.title}
                   </Text>
                   <Text variant="bodyMedium" style={[styles.optionDescription, { color: theme.colors.onSurfaceVariant }]}>
-                    {option.description}
+                    {variant.description}
                   </Text>
                   
                   {/* Features */}
                   <View style={styles.featuresContainer}>
-                    {option.features.map((feature, featureIndex) => (
+                    {variant.features.map((feature, featureIndex) => (
                       <Chip 
                         key={featureIndex}
                         compact 
@@ -148,13 +174,13 @@ const ServiceOptionsScreen = ({ navigation, route }: any) => {
                     <View style={styles.metaItem}>
                       <Ionicons name="time-outline" size={16} color={theme.colors.onSurfaceVariant} />
                       <Text variant="bodyMedium" style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}>
-                        {option.duration}
+                        {variant.duration}
                       </Text>
                     </View>
                     <View style={styles.metaItem}>
-                      <Ionicons name="euro-outline" size={16} color={theme.colors.primary} />
+                      <Ionicons name="cash-outline" size={16} color={theme.colors.primary} />
                       <Text variant="titleMedium" style={[styles.priceText, { color: theme.colors.primary }]}>
-                        €{option.price}
+                        €{variant.price}
                       </Text>
                     </View>
                   </View>
@@ -162,7 +188,7 @@ const ServiceOptionsScreen = ({ navigation, route }: any) => {
 
                 {/* Add to Cart Button */}
                 <View style={styles.optionActions}>
-                  {isServiceInCart(option.id) ? (
+                  {isServiceInCart(variant.id) ? (
                     <Button 
                       mode="outlined" 
                       icon="check"
@@ -174,7 +200,7 @@ const ServiceOptionsScreen = ({ navigation, route }: any) => {
                   ) : (
                     <Button 
                       mode="contained" 
-                      onPress={() => handleAddToCart(option)}
+                      onPress={() => handleAddToCart(variant)}
                       icon="cart-plus"
                       style={styles.addButton}
                     >

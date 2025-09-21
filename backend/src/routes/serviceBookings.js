@@ -4,6 +4,34 @@ const { supabase } = require('../config/database');
 
 const router = express.Router();
 
+// @desc    Test database connection
+// @route   GET /api/service-bookings/test
+// @access  Public
+router.get('/test', async (req, res) => {
+  try {
+    // Test if service_bookings table exists
+    const { data: testData, error: testError } = await supabase
+      .from('service_bookings')
+      .select('count')
+      .limit(1);
+    
+    console.log('Service bookings table test:', { testData, testError });
+    
+    res.json({
+      success: true,
+      message: 'Database connection test',
+      data: { testData, testError }
+    });
+  } catch (error) {
+    console.error('Database test error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Database test failed',
+      details: error.message
+    });
+  }
+});
+
 // Middleware to verify JWT token and get user
 const verifyToken = async (req, res, next) => {
   try {
@@ -49,8 +77,7 @@ router.get('/', verifyToken, async (req, res) => {
           id,
           title,
           description,
-          category,
-          duration
+          category
         )
       `)
       .eq('user_id', req.user.id)
@@ -241,25 +268,37 @@ router.post('/', [
       payment_method = 'pending'
     } = req.body;
 
-    // Check if service exists
-    const { data: service, error: serviceError } = await supabase
-      .from('services')
-      .select('id, title, duration')
+    // Check if service variant exists
+    console.log('🔍 DEBUG: Looking for service variant with ID:', service_id);
+    const { data: serviceVariant, error: serviceError } = await supabase
+      .from('service_variants')
+      .select(`
+        id, title, duration, price,
+        services (
+          id,
+          title,
+          category
+        )
+      `)
       .eq('id', service_id)
       .eq('is_active', true)
       .single();
 
-    if (serviceError || !service) {
+    console.log('Service variant query result:', { serviceVariant, serviceError });
+
+    if (serviceError || !serviceVariant) {
+      console.log('Service variant not found or inactive. Error:', serviceError);
       return res.status(400).json({
         success: false,
-        error: 'Service not found or inactive'
+        error: 'Service variant not found or inactive'
       });
     }
 
     // Create booking
     const bookingData = {
       user_id: req.user.id,
-      service_id,
+      service_id: serviceVariant.services.id, // Use the main service ID
+      service_variant_id: service_id, // Use the service variant ID
       booking_date,
       booking_time,
       duration_minutes,
@@ -276,20 +315,15 @@ router.post('/', [
       updated_at: new Date().toISOString()
     };
 
+    console.log('Creating booking with data:', bookingData);
+
     const { data: booking, error: bookingError } = await supabase
       .from('service_bookings')
       .insert([bookingData])
-      .select(`
-        *,
-        services (
-          id,
-          title,
-          description,
-          category,
-          duration
-        )
-      `)
+      .select('*')
       .single();
+
+    console.log('Booking creation result:', { booking, bookingError });
 
     if (bookingError) {
       console.error('Error creating booking:', bookingError);
