@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Alert } from 'react-native';
 import { cartAPI, CartItem, CartSummary } from '../services/cartAPI';
-import { serviceOptionsAPI, ServiceCategory } from '../services/serviceOptionsAPI';
+import { servicesAPI, Service } from '../services/servicesAPI';
 import { useAuth } from './AuthContext';
 
 interface CartContextType {
   cartItems: CartItem[];
   cartSummary: CartSummary;
-  serviceCategories: ServiceCategory[];
+  serviceCategories: Service[];
   loading: boolean;
   addToCart: (service: any, calculatedPrice?: number, userInputs?: any) => Promise<boolean>;
   removeFromCart: (cartItemId: string) => Promise<boolean>;
@@ -39,7 +39,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     totalItems: 0,
     totalPrice: 0
   });
-  const [serviceCategories, setServiceCategories] = useState<ServiceCategory[]>([]);
+  const [serviceCategories, setServiceCategories] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Load cart and service categories when user changes
@@ -87,9 +87,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const refreshServiceCategories = async () => {
     try {
       console.log('Refreshing service categories...');
-      const categories = await serviceOptionsAPI.getServiceCategories();
-      console.log('Service categories response:', categories);
-      setServiceCategories(categories);
+      const services = await servicesAPI.getAllServices();
+      console.log('Services response:', services);
+      setServiceCategories(services);
     } catch (error) {
       console.error('Error refreshing service categories:', error);
     }

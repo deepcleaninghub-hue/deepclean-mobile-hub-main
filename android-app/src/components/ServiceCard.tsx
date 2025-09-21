@@ -12,6 +12,7 @@ import { Text, Card, Button, useTheme, Portal } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { ServiceOption } from '../services/serviceOptionsAPI';
 
 interface ServiceCardProps {
   id: string;
@@ -28,6 +29,9 @@ interface ServiceCardProps {
   max_measurement?: number;
   measurement_step?: number;
   measurement_placeholder?: string;
+  onSelectService?: () => void;
+  onViewService?: () => void;
+  variantCount?: number;
 }
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ 
@@ -44,7 +48,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   min_measurement,
   max_measurement,
   measurement_step,
-  measurement_placeholder
+  measurement_placeholder,
+  onSelectService,
+  onViewService,
+  variantCount = 0
 }) => {
   const theme = useTheme();
   const { isAuthenticated } = useAuth();
@@ -55,13 +62,22 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
 
   const handleViewService = () => {
-    Alert.alert('Service Details', `Viewing details for ${title}`);
-    // Here you would typically navigate to a service detail screen
+    if (onViewService) {
+      onViewService();
+    } else {
+      Alert.alert('Service Details', `Viewing details for ${title}`);
+    }
   };
 
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
       Alert.alert('Login Required', 'Please login to add items to your cart');
+      return;
+    }
+
+    // If service has multiple variants, show selection modal
+    if (variantCount > 1 && onSelectService) {
+      onSelectService();
       return;
     }
 
@@ -72,17 +88,25 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     }
 
     // For fixed pricing services, add directly to cart
-    const service = {
+    const service: ServiceOption = {
       id,
       title,
       description,
-      image,
-      price,
-      duration,
-      category
+      service_id: id, // Use id as service_id for ServiceOption
+      price: price || 0,
+      duration: duration || '',
+      features: [], // Default empty features array
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      services: {
+        id: id,
+        title: title,
+        category: category || ''
+      }
     };
 
-    await addToCart(service);
+    await addToCart(service, price);
   };
 
   const handleMeasurementChange = (value: string) => {
@@ -115,16 +139,22 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       return;
     }
 
-    const service = {
+    const service: ServiceOption = {
       id,
       title,
       description,
-      image,
+      service_id: id,
       price: calculatedPrice,
-      duration,
-      category,
-      measurement: numMeasurement,
-      unit_measure
+      duration: duration || '',
+      features: [],
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      services: {
+        id: id,
+        title: title,
+        category: category || ''
+      }
     };
 
     const userInputs = {
@@ -163,12 +193,19 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 <Text variant="titleLarge" style={[styles.price, { color: theme.colors.primary }]}>
                   {pricing_type === 'per_unit' && unit_price 
                     ? `€${unit_price.toFixed(2)}/${unit_measure}`
-                    : `€${(price || 0).toFixed(2)}`
+                    : variantCount > 1 
+                      ? `From €${(price || 0).toFixed(2)}`
+                      : `€${(price || 0).toFixed(2)}`
                   }
                 </Text>
                 {pricing_type === 'per_unit' && (
                   <Text variant="bodySmall" style={[styles.unitPrice, { color: theme.colors.onSurfaceVariant }]}>
                     Per {unit_measure}
+                  </Text>
+                )}
+                {variantCount > 1 && (
+                  <Text variant="bodySmall" style={[styles.variantCount, { color: theme.colors.onSurfaceVariant }]}>
+                    {variantCount} options available
                   </Text>
                 )}
               </View>
@@ -202,13 +239,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 disabled={loading || isServiceInCart(id)}
                 icon={({ size, color }) => (
                   <Ionicons 
-                    name={isServiceInCart(id) ? "checkmark" : "cart"} 
+                    name={isServiceInCart(id) ? "checkmark" : variantCount > 1 ? "options" : "cart"} 
                     size={size} 
                     color={color} 
                   />
                 )}
               >
-                {isServiceInCart(id) ? 'In Cart' : 'Add to Cart'}
+                {isServiceInCart(id) ? 'In Cart' : variantCount > 1 ? 'Choose Option' : 'Add to Cart'}
               </Button>
             )}
           </View>
@@ -220,7 +257,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         <Modal
           visible={showMeasurementModal}
           onDismiss={() => setShowMeasurementModal(false)}
-          contentContainerStyle={[styles.modal, { backgroundColor: theme.colors.surface }]}
+          style={[styles.modal, { backgroundColor: theme.colors.surface }]}
         >
           <View style={styles.modalContent}>
             <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
@@ -333,6 +370,10 @@ const styles = StyleSheet.create({
   },
   unitPrice: {
     marginTop: 2,
+  },
+  variantCount: {
+    marginTop: 2,
+    fontStyle: 'italic',
   },
   duration: {
     fontStyle: 'italic',

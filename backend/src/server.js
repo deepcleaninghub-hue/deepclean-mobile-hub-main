@@ -23,6 +23,7 @@ const profileRoutes = require('./routes/profile');
 const orderRoutes = require('./routes/orders');
 const serviceBookingRoutes = require('./routes/serviceBookings');
 const serviceOptionsRoutes = require('./routes/serviceOptions');
+const serviceVariantsRoutes = require('./routes/serviceVariants');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -92,6 +93,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/service-bookings', serviceBookingRoutes);
 app.use('/api/service-options', serviceOptionsRoutes);
+app.use('/api/service-variants', serviceVariantsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
