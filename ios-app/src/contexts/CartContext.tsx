@@ -97,7 +97,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       const cartItemData = {
         service_id: service.id,
         quantity: 1,
-        user_inputs: userInputs || {}
+        user_inputs: userInputs || {},
+        calculated_price: calculatedPrice || service.price
       };
 
       await cartAPI.addToCart(cartItemData);

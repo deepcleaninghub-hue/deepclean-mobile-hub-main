@@ -55,18 +55,44 @@ router.get('/items', verifyToken, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch cart items' });
     }
 
-    // Get service details for each cart item
+    // Get service option details for each cart item
     const itemsWithServices = await Promise.all(
       (cartItems || []).map(async (item) => {
-        const { data: service, error: serviceError } = await supabase
-          .from('services')
-          .select('id, title, description, image, category, price, duration, features')
+        const { data: serviceOption, error: serviceError } = await supabase
+          .from('service_options')
+          .select(`
+            id, title, description, image, price, duration, features,
+            services (
+              id,
+              title,
+              category
+            )
+          `)
           .eq('id', item.service_id)
           .single();
 
+        if (serviceError || !serviceOption) {
+          return {
+            ...item,
+            service: null
+          };
+        }
+
+        // Format service option data
+        const service = {
+          id: serviceOption.id,
+          title: serviceOption.title,
+          description: serviceOption.description,
+          image: serviceOption.image || '',
+          category: serviceOption.services?.category || 'General',
+          price: serviceOption.price,
+          duration: serviceOption.duration,
+          features: serviceOption.features || []
+        };
+
         return {
           ...item,
-          service: serviceError ? null : service
+          service
         };
       })
     );
@@ -81,22 +107,42 @@ router.get('/items', verifyToken, async (req, res) => {
 // Add item to cart
 router.post('/items', verifyToken, async (req, res) => {
   try {
-    const { service_id, quantity = 1, user_inputs = {} } = req.body;
+    const { service_id, quantity = 1, user_inputs = {}, calculated_price } = req.body;
+
 
     if (!service_id) {
       return res.status(400).json({ error: 'Service ID is required' });
     }
 
-    // Get service details
-    const { data: service, error: serviceError } = await supabase
-      .from('services')
-      .select('*')
+    // Get service option details
+    const { data: serviceOption, error: serviceError } = await supabase
+      .from('service_options')
+      .select(`
+        *,
+        services (
+          id,
+          title,
+          category
+        )
+      `)
       .eq('id', service_id)
       .single();
 
-    if (serviceError || !service) {
+    if (serviceError || !serviceOption) {
       return res.status(404).json({ error: 'Service not found' });
     }
+
+    // Use service option data
+    const service = {
+      id: serviceOption.id,
+      title: serviceOption.title,
+      description: serviceOption.description,
+      image: serviceOption.image || '',
+      category: serviceOption.services?.category || 'General',
+      price: serviceOption.price,
+      duration: serviceOption.duration,
+      features: serviceOption.features || []
+    };
 
     // Check if item already exists in cart
     const { data: existingItem, error: existingError } = await supabase
@@ -109,13 +155,14 @@ router.post('/items', verifyToken, async (req, res) => {
     if (existingItem) {
       // Update existing item
       const newQuantity = existingItem.quantity + quantity;
-      const calculatedPrice = service.price * newQuantity;
+      const finalCalculatedPrice = calculated_price ? calculated_price * newQuantity : service.price * newQuantity;
+      
 
       const { data, error } = await supabase
         .from('cart_items')
         .update({
           quantity: newQuantity,
-          calculated_price: calculatedPrice,
+          calculated_price: finalCalculatedPrice,
           user_inputs: { ...existingItem.user_inputs, ...user_inputs },
           updated_at: new Date().toISOString()
         })
@@ -131,7 +178,8 @@ router.post('/items', verifyToken, async (req, res) => {
       return res.json({ success: true, data, message: 'Cart item updated' });
     } else {
       // Add new item
-      const calculatedPrice = service.price * quantity;
+      const finalCalculatedPrice = calculated_price ? calculated_price * quantity : service.price * quantity;
+      
 
       const { data, error } = await supabase
         .from('cart_items')
@@ -143,7 +191,7 @@ router.post('/items', verifyToken, async (req, res) => {
           service_duration: service.duration,
           service_category: service.category,
           quantity,
-          calculated_price: calculatedPrice,
+          calculated_price: finalCalculatedPrice,
           user_inputs
         })
         .select()

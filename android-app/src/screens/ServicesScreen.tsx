@@ -170,6 +170,13 @@ const ServicesScreen = () => {
                 price={option.price}
                 duration={option.duration || ''}
                 category={option.services?.category || ''}
+                pricing_type={option.pricing_type}
+                unit_price={option.unit_price}
+                unit_measure={option.unit_measure}
+                min_measurement={option.min_measurement}
+                max_measurement={option.max_measurement}
+                measurement_step={option.measurement_step}
+                measurement_placeholder={option.measurement_placeholder}
               />
             ))
           )}
