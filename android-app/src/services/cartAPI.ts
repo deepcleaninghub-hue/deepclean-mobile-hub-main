@@ -34,6 +34,7 @@ export interface AddToCartRequest {
   service_id: string;
   quantity?: number;
   user_inputs?: Record<string, any>;
+  calculated_price?: number;
 }
 
 export interface UpdateCartItemRequest {
