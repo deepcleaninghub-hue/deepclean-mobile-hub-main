@@ -53,16 +53,35 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
   onViewService,
   variantCount = 0
 }) => {
+  // PERFORMANCE FIX: State for image loading
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   const theme = useTheme();
   const { isAuthenticated } = useAuth();
   const { addToCart, isServiceInCart, loading } = useCart();
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   const [measurement, setMeasurement] = useState('');
-  const [calculatedPrice, setCalculatedPrice] = useState(0);
-  const [imageError, setImageError] = useState(false);
 
-  // Memoize expensive calculations
+  // PERFORMANCE FIX: Memoized calculations
   const isInCart = useMemo(() => isServiceInCart(id), [id, isServiceInCart]);
+  
+  const fallbackImage = useMemo(() => {
+    return require('../assets/images/kitchen-cleaning.png');
+  }, []);
+
+  // PERFORMANCE FIX: Memoized callbacks
+  const handleImageLoad = useCallback(() => {
+    setImageLoading(false);
+    setImageError(false);
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    setImageLoading(false);
+    setImageError(true);
+  }, []);
+
+  
+  const [calculatedPrice, setCalculatedPrice] = useState(0);
   
   const isPerUnitPricing = useMemo(() => 
     pricing_type === 'per_unit' && unit_price, 
@@ -237,9 +256,6 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
     setCalculatedPrice(0);
   }, []);
 
-  const handleImageError = useCallback(() => {
-    setImageError(true);
-  }, []);
 
   // Memoize styles to prevent recalculation on every render
   const cardStyles = useMemo(() => [
@@ -290,9 +306,10 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
       <TouchableOpacity onPress={handleViewService} activeOpacity={0.9}>
         <View style={styles.imageContainer}>
           <Image
-            source={imageSource}
+            source={imageError ? fallbackImage : imageSource}
             style={styles.image}
             resizeMode="cover"
+            onLoad={handleImageLoad}
             onError={handleImageError}
             accessibilityLabel={title}
             accessibilityRole="image"

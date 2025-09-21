@@ -9,22 +9,25 @@ import MainNavigator from './src/navigation/MainNavigator';
 import { theme } from './src/utils/theme';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { CartProvider } from './src/contexts/CartContext';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <PaperProvider theme={theme}>
-          <AuthProvider>
-            <CartProvider>
-              <NavigationContainer>
-                <StatusBar style="auto" />
-                <MainNavigator />
-              </NavigationContainer>
-            </CartProvider>
-          </AuthProvider>
-        </PaperProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <PaperProvider theme={theme}>
+            <AuthProvider>
+              <CartProvider>
+                <NavigationContainer>
+                  <StatusBar style="auto" />
+                  <MainNavigator />
+                </NavigationContainer>
+              </CartProvider>
+            </AuthProvider>
+          </PaperProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }

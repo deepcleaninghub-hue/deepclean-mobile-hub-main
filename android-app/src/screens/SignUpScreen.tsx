@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { validationSchemas, validateInput } from '../utils/validation';
 
 const SignUpScreen = ({ navigation }: any) => {
   const theme = useTheme();
@@ -39,16 +40,6 @@ const SignUpScreen = ({ navigation }: any) => {
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePhone = (phone: string) => {
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
-  };
-
   const handleSignUp = async () => {
     // Reset errors
     setFirstNameError('');
@@ -58,57 +49,38 @@ const SignUpScreen = ({ navigation }: any) => {
     setPasswordError('');
     setConfirmPasswordError('');
 
-    // Validate inputs
-    let isValid = true;
-
-    if (!firstName.trim()) {
-      setFirstNameError('First name is required');
-      isValid = false;
-    }
-
-    if (!lastName.trim()) {
-      setLastNameError('Last name is required');
-      isValid = false;
-    }
-
-    if (!email.trim()) {
-      setEmailError('Email is required');
-      isValid = false;
-    } else if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email');
-      isValid = false;
-    }
-
-    if (phone.trim() && !validatePhone(phone)) {
-      setPhoneError('Please enter a valid phone number');
-      isValid = false;
-    }
-
-    if (!password.trim()) {
-      setPasswordError('Password is required');
-      isValid = false;
-    } else if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
-      isValid = false;
-    }
-
-    if (!confirmPassword.trim()) {
-      setConfirmPasswordError('Please confirm your password');
-      isValid = false;
-    } else if (password !== confirmPassword) {
-      setConfirmPasswordError('Passwords do not match');
-      isValid = false;
-    }
-
-    if (!isValid) return;
-
-    // Attempt sign up
-    const success = await signUp(
-      email.trim(),
+    // SECURITY FIX: Use comprehensive validation
+    const formData = {
+      firstName,
+      lastName,
+      email,
+      phone,
       password,
-      firstName.trim(),
-      lastName.trim(),
-      phone.trim() || undefined
+      confirmPassword,
+    };
+
+    const validation = validateInput.form(validationSchemas.userRegistration, formData);
+    
+    if (!validation.success) {
+      // Set individual field errors
+      if (validation.errors) {
+        setFirstNameError(validation.errors.firstName || '');
+        setLastNameError(validation.errors.lastName || '');
+        setEmailError(validation.errors.email || '');
+        setPhoneError(validation.errors.phone || '');
+        setPasswordError(validation.errors.password || '');
+        setConfirmPasswordError(validation.errors.confirmPassword || '');
+      }
+      return;
+    }
+
+    // Attempt sign up with validated data
+    const success = await signUp(
+      validation.data!.email,
+      validation.data!.password,
+      validation.data!.firstName,
+      validation.data!.lastName,
+      validation.data!.phone || undefined
     );
 
     if (success) {

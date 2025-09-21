@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { httpClient } from '../services/simpleHttpClient';
 import { profileAPI, UserProfile } from '../services/profileAPI';
 import { MobileUser } from '../config/supabase';
@@ -15,11 +15,14 @@ interface AuthContextType {
   updateProfile: (updates: Partial<MobileUser>) => Promise<boolean>;
   updateUser: (updatedUser: UserProfile) => void;
   clearAllAuthData: () => Promise<void>;
+  refreshToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_STORAGE_KEY = 'auth_user';
+const TOKEN_REFRESH_INTERVAL = 25 * 60 * 1000; // 25 minutes
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -36,10 +39,46 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<MobileUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastActivity, setLastActivity] = useState<number>(Date.now());
 
   // Load user from AsyncStorage on app start
   useEffect(() => {
     loadStoredUser();
+  }, []);
+
+  // PERFORMANCE FIX: Token refresh mechanism
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshInterval = setInterval(async () => {
+      const success = await refreshToken();
+      if (!success) {
+        console.log('Token refresh failed, signing out');
+        await signOut();
+      }
+    }, TOKEN_REFRESH_INTERVAL);
+
+    return () => clearInterval(refreshInterval);
+  }, [user]);
+
+  // PERFORMANCE FIX: Session timeout handling
+  useEffect(() => {
+    if (!user) return;
+
+    const timeout = setTimeout(() => {
+      const timeSinceLastActivity = Date.now() - lastActivity;
+      if (timeSinceLastActivity > SESSION_TIMEOUT) {
+        console.log('Session timeout, signing out');
+        signOut();
+      }
+    }, SESSION_TIMEOUT);
+
+    return () => clearTimeout(timeout);
+  }, [user, lastActivity]);
+
+  // Update last activity on user interaction
+  const updateLastActivity = useCallback(() => {
+    setLastActivity(Date.now());
   }, []);
 
   const loadStoredUser = async () => {
@@ -197,6 +236,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // PERFORMANCE FIX: Token refresh function
+  const refreshToken = useCallback(async (): Promise<boolean> => {
+    try {
+      const response = await httpClient.post('/auth/refresh', {});
+      if (response.token) {
+        await AsyncStorage.setItem('auth_token', response.token);
+        updateLastActivity();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
+  }, []);
+
   const updateUser = (updatedProfile: UserProfile): void => {
     if (!user) return;
     
@@ -225,6 +280,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateProfile,
     updateUser,
     clearAllAuthData,
+    refreshToken,
   };
 
   return (
