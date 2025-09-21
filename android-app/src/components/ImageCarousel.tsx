@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -11,6 +11,10 @@ import { useTheme, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+// Constants
+const AUTO_SCROLL_INTERVAL = 3000; // 3 seconds
+const SCROLL_THROTTLE = 100; // 100ms throttle for better performance
 
 interface CarouselImage {
   id: string;
@@ -27,39 +31,86 @@ interface ImageCarouselProps {
 const ImageCarousel: React.FC<ImageCarouselProps> = ({ images, height = 300 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const theme = useTheme();
   const navigation = useNavigation<any>();
   
-  // Auto-play functionality
+  // Memoize images length to prevent unnecessary re-renders
+  const imagesLength = useMemo(() => images.length, [images.length]);
+  
+  // Auto-play functionality - FIXED: Removed activeIndex from dependencies
   useEffect(() => {
-    const interval = setInterval(() => {
-      const nextIndex = (activeIndex + 1) % images.length;
-      setActiveIndex(nextIndex);
-      scrollViewRef.current?.scrollTo({
-        x: nextIndex * screenWidth,
-        animated: true,
+    if (imagesLength <= 1) return; // Don't auto-scroll if only one image
+    
+    intervalRef.current = setInterval(() => {
+      setActiveIndex(prevIndex => {
+        const nextIndex = (prevIndex + 1) % imagesLength;
+        scrollViewRef.current?.scrollTo({
+          x: nextIndex * screenWidth,
+          animated: true,
+        });
+        return nextIndex;
       });
-    }, 3000); // Change slide every 3 seconds
+    }, AUTO_SCROLL_INTERVAL);
 
-    return () => clearInterval(interval);
-  }, [activeIndex, images.length]);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [imagesLength]); // Only depend on imagesLength, not activeIndex
 
-  const handleScroll = (event: any) => {
+  // Optimized scroll handler with useCallback
+  const handleScroll = useCallback((event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollPosition / screenWidth);
-    setActiveIndex(index);
-  };
+    
+    // Only update if index actually changed
+    setActiveIndex(prevIndex => {
+      if (prevIndex !== index && index >= 0 && index < imagesLength) {
+        return index;
+      }
+      return prevIndex;
+    });
+  }, [imagesLength]);
+
+  // Memoized navigation handler
+  const handleViewServices = useCallback(() => {
+    navigation.navigate('Services');
+  }, [navigation]);
+
+  // Memoized pagination dots
+  const paginationDots = useMemo(() => {
+    return images.map((_, index) => (
+      <View
+        key={index}
+        testID="pagination-dot"
+        style={[
+          styles.paginationDot,
+          {
+            backgroundColor: index === activeIndex 
+              ? theme.colors.primary 
+              : theme.colors.outline,
+          },
+        ]}
+      />
+    ));
+  }, [images, activeIndex, theme.colors.primary, theme.colors.outline]);
 
   return (
-    <View style={[styles.container, { height }]}>
+    <View style={[styles.container, { height }]} testID="image-carousel">
       <ScrollView
         ref={scrollViewRef}
+        testID="scroll-view"
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
-        scrollEventThrottle={16}
+        scrollEventThrottle={SCROLL_THROTTLE}
         style={styles.scrollView}
+        decelerationRate="fast"
+        bounces={false}
       >
         {images.map((image, index) => (
           <View key={image.id} style={[styles.slide, { width: screenWidth }]}>
@@ -67,6 +118,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images, height = 300 }) =
               source={typeof image.uri === 'number' ? image.uri : { uri: image.uri }}
               style={[styles.image, { height }]} 
               resizeMode="cover"
+              onError={() => console.warn(`Failed to load image: ${image.uri}`)}
             />
             <View style={styles.blackTint} />
           </View>
@@ -77,7 +129,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images, height = 300 }) =
       <View style={styles.centerButtonContainer}>
         <Button
           mode="outlined"
-          onPress={() => navigation.navigate('Services')}
+          onPress={handleViewServices}
           style={styles.viewServicesButton}
           contentStyle={styles.buttonContent}
           textColor="white"
@@ -88,19 +140,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({ images, height = 300 }) =
       
       {/* Pagination Indicators */}
       <View style={styles.paginationContainer}>
-        {images.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.paginationDot,
-              {
-                backgroundColor: index === activeIndex 
-                  ? theme.colors.primary 
-                  : theme.colors.outline,
-              },
-            ]}
-          />
-        ))}
+        {paginationDots}
       </View>
     </View>
   );

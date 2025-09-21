@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   Modal,
 } from 'react-native';
@@ -40,22 +40,140 @@ const ServiceOptionModal: React.FC<ServiceOptionModalProps> = ({
   const theme = useTheme();
   const [selectedVariant, setSelectedVariant] = useState<ServiceVariant | null>(null);
 
-  const handleSelectVariant = (variant: ServiceVariant) => {
+  // Memoize event handlers to prevent unnecessary re-renders
+  const handleSelectVariant = useCallback((variant: ServiceVariant) => {
     setSelectedVariant(variant);
-  };
+  }, []);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = useCallback(() => {
     if (selectedVariant) {
       onSelectVariant(selectedVariant);
       setSelectedVariant(null);
       onDismiss();
     }
-  };
+  }, [selectedVariant, onSelectVariant, onDismiss]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setSelectedVariant(null);
     onDismiss();
-  };
+  }, [onDismiss]);
+
+  // Memoize key extractor for FlatList
+  const keyExtractor = useCallback((item: ServiceVariant) => item.id, []);
+
+  // Memoize render item for FlatList
+  const renderVariantItem = useCallback(({ item: variant }: { item: ServiceVariant }) => {
+    const isSelected = selectedVariant?.id === variant.id;
+    const isInCart = isServiceInCart(variant.id);
+    
+    return (
+      <TouchableOpacity
+        testID={`variant-card-${variant.id}`}
+        onPress={() => handleSelectVariant(variant)}
+        style={[
+          styles.optionCard,
+          { backgroundColor: theme.colors.surface },
+          isSelected && { borderColor: theme.colors.primary, borderWidth: 2 }
+        ]}
+        accessibilityLabel={`Service variant: ${variant.title}`}
+        accessibilityRole="button"
+        accessibilityHint="Tap to select this service variant"
+      >
+        <Card style={[
+          styles.optionCardInner,
+          { backgroundColor: isSelected ? theme.colors.primaryContainer : theme.colors.surface }
+        ]}>
+          <Card.Content style={styles.optionContent}>
+            <View style={styles.optionHeader}>
+              <View style={styles.optionTitleContainer}>
+                <Text variant="titleMedium" style={[
+                  styles.optionTitle, 
+                  { color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurface }
+                ]}>
+                  {variant.title}
+                </Text>
+                {isInCart && (
+                  <Chip 
+                    compact 
+                    style={[styles.inCartChip, { backgroundColor: theme.colors.secondary }]}
+                    textStyle={{ color: theme.colors.onSecondary }}
+                  >
+                    In Cart
+                  </Chip>
+                )}
+              </View>
+              <View style={styles.priceContainer}>
+                <Text variant="titleLarge" style={[
+                  styles.price, 
+                  { color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.primary }
+                ]}>
+                  €{variant.price.toFixed(2)}
+                </Text>
+                <Text variant="bodySmall" style={[
+                  styles.duration, 
+                  { color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant }
+                ]}>
+                  {variant.duration}
+                </Text>
+              </View>
+            </View>
+
+            <Text variant="bodyMedium" style={[
+              styles.optionDescription, 
+              { color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant }
+            ]}>
+              {variant.description}
+            </Text>
+
+            {/* Features */}
+            {variant.features && variant.features.length > 0 && (
+              <View style={styles.featuresContainer}>
+                {variant.features.slice(0, 3).map((feature, featureIndex) => (
+                  <Chip 
+                    key={featureIndex}
+                    compact 
+                    style={[
+                      styles.featureChip, 
+                      { 
+                        backgroundColor: isSelected 
+                          ? theme.colors.primary 
+                          : theme.colors.outline 
+                      }
+                    ]}
+                    textStyle={{ 
+                      color: isSelected 
+                        ? theme.colors.onPrimary 
+                        : theme.colors.onSurfaceVariant 
+                    }}
+                  >
+                    {feature}
+                  </Chip>
+                ))}
+                {variant.features.length > 3 && (
+                  <Text variant="bodySmall" style={[
+                    styles.moreFeatures, 
+                    { color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant }
+                  ]}>
+                    +{variant.features.length - 3} more
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {/* Selection Indicator */}
+            {isSelected && (
+              <View style={styles.selectedIndicator}>
+                <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+                <Text variant="bodySmall" style={[styles.selectedText, { color: theme.colors.primary }]}>
+                  Selected
+                </Text>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+      </TouchableOpacity>
+    );
+  }, [selectedVariant, isServiceInCart, theme.colors, handleSelectVariant]);
 
   if (!service) return null;
 
@@ -97,133 +215,55 @@ const ServiceOptionModal: React.FC<ServiceOptionModalProps> = ({
           </Card>
 
           {/* Options List */}
-          <ScrollView style={styles.optionsList} showsVerticalScrollIndicator={false}>
-            {(service.service_variants || []).map((variant, index) => {
-              const isSelected = selectedVariant?.id === variant.id;
-              const isInCart = isServiceInCart(variant.id);
-              
-              return (
-                <TouchableOpacity
-                  key={variant.id}
-                  onPress={() => handleSelectVariant(variant)}
-                  style={[
-                    styles.optionCard,
-                    { backgroundColor: theme.colors.surface },
-                    isSelected && { borderColor: theme.colors.primary, borderWidth: 2 }
-                  ]}
-                >
-                  <Card style={[
-                    styles.optionCardInner,
-                    { backgroundColor: isSelected ? theme.colors.primaryContainer : theme.colors.surface }
-                  ]}>
-                    <Card.Content style={styles.optionContent}>
-                      <View style={styles.optionHeader}>
-                        <View style={styles.optionTitleContainer}>
-                          <Text variant="titleMedium" style={[
-                            styles.optionTitle, 
-                            { color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurface }
-                          ]}>
-                            {variant.title}
-                          </Text>
-                          {isInCart && (
-                            <Chip 
-                              compact 
-                              style={[styles.inCartChip, { backgroundColor: theme.colors.secondary }]}
-                              textStyle={{ color: theme.colors.onSecondary }}
-                            >
-                              In Cart
-                            </Chip>
-                          )}
-                        </View>
-                        <View style={styles.priceContainer}>
-                          <Text variant="titleLarge" style={[
-                            styles.price, 
-                            { color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.primary }
-                          ]}>
-                            €{variant.price.toFixed(2)}
-                          </Text>
-                          <Text variant="bodySmall" style={[
-                            styles.duration, 
-                            { color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant }
-                          ]}>
-                            {variant.duration}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <Text variant="bodyMedium" style={[
-                        styles.optionDescription, 
-                        { color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant }
-                      ]}>
-                        {variant.description}
-                      </Text>
-
-                      {/* Features */}
-                      {variant.features && variant.features.length > 0 && (
-                        <View style={styles.featuresContainer}>
-                          {variant.features.slice(0, 3).map((feature, featureIndex) => (
-                            <Chip 
-                              key={featureIndex}
-                              compact 
-                              style={[
-                                styles.featureChip, 
-                                { 
-                                  backgroundColor: isSelected 
-                                    ? theme.colors.primary 
-                                    : theme.colors.outline 
-                                }
-                              ]}
-                              textStyle={{ 
-                                color: isSelected 
-                                  ? theme.colors.onPrimary 
-                                  : theme.colors.onSurfaceVariant 
-                              }}
-                            >
-                              {feature}
-                            </Chip>
-                          ))}
-                          {variant.features.length > 3 && (
-                            <Text variant="bodySmall" style={[
-                              styles.moreFeatures, 
-                              { color: isSelected ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant }
-                            ]}>
-                              +{variant.features.length - 3} more
-                            </Text>
-                          )}
-                        </View>
-                      )}
-
-                      {/* Selection Indicator */}
-                      {isSelected && (
-                        <View style={styles.selectedIndicator}>
-                          <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
-                          <Text variant="bodySmall" style={[styles.selectedText, { color: theme.colors.primary }]}>
-                            Selected
-                          </Text>
-                        </View>
-                      )}
-                    </Card.Content>
-                  </Card>
-                </TouchableOpacity>
-              );
+          <FlatList
+            testID="service-variants-flatlist"
+            data={service.service_variants || []}
+            keyExtractor={keyExtractor}
+            renderItem={renderVariantItem}
+            showsVerticalScrollIndicator={false}
+            style={styles.optionsList}
+            // Performance optimizations
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            initialNumToRender={3}
+            updateCellsBatchingPeriod={50}
+            getItemLayout={(data, index) => ({
+              length: 180, // Approximate height of variant card
+              offset: 180 * index,
+              index,
             })}
-          </ScrollView>
+            // Accessibility
+            accessibilityLabel="Service variants list"
+            accessibilityRole="list"
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <Text variant="bodyLarge" style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
+                  No variants available
+                </Text>
+              </View>
+            )}
+          />
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <Button
+              testID="cancel-button"
               mode="outlined"
               onPress={handleClose}
               style={styles.cancelButton}
+              accessibilityLabel="Cancel"
             >
               Cancel
             </Button>
             <Button
+              testID="add-to-cart-button"
               mode="contained"
               onPress={handleAddToCart}
               disabled={!selectedVariant || !isAuthenticated}
               style={styles.addButton}
               icon="cart-plus"
+              accessibilityLabel="Add to cart"
             >
               Add to Cart
             </Button>
@@ -274,6 +314,15 @@ const styles = StyleSheet.create({
   optionsList: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    textAlign: 'center',
   },
   optionCard: {
     marginBottom: 12,
