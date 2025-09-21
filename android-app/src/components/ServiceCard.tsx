@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -34,7 +34,7 @@ interface ServiceCardProps {
   variantCount?: number;
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ 
+const ServiceCard: React.FC<ServiceCardProps> = React.memo(({ 
   id, 
   title, 
   description, 
@@ -59,30 +59,67 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   const [measurement, setMeasurement] = useState('');
   const [calculatedPrice, setCalculatedPrice] = useState(0);
+  const [imageError, setImageError] = useState(false);
+
+  // Memoize expensive calculations
+  const isInCart = useMemo(() => isServiceInCart(id), [id, isServiceInCart]);
+  
+  const isPerUnitPricing = useMemo(() => 
+    pricing_type === 'per_unit' && unit_price, 
+    [pricing_type, unit_price]
+  );
+
+  const hasMultipleVariants = useMemo(() => 
+    variantCount > 1, 
+    [variantCount]
+  );
+
+  const displayPrice = useMemo(() => {
+    if (isPerUnitPricing) {
+      return `€${unit_price?.toFixed(2)}/${unit_measure}`;
+    }
+    if (hasMultipleVariants) {
+      return `From €${(price || 0).toFixed(2)}`;
+    }
+    return `€${(price || 0).toFixed(2)}`;
+  }, [isPerUnitPricing, unit_price, unit_measure, hasMultipleVariants, price]);
+
+  const buttonText = useMemo(() => {
+    if (isInCart) return 'In Cart';
+    if (hasMultipleVariants) return 'Choose Option';
+    return 'Add to Cart';
+  }, [isInCart, hasMultipleVariants]);
+
+  const buttonIcon = useMemo(() => {
+    if (isInCart) return 'checkmark';
+    if (hasMultipleVariants) return 'options';
+    return 'cart';
+  }, [isInCart, hasMultipleVariants]);
 
 
-  const handleViewService = () => {
+  // Memoize event handlers to prevent unnecessary re-renders
+  const handleViewService = useCallback(() => {
     if (onViewService) {
       onViewService();
     } else {
       Alert.alert('Service Details', `Viewing details for ${title}`);
     }
-  };
+  }, [onViewService, title]);
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = useCallback(async () => {
     if (!isAuthenticated) {
       Alert.alert('Login Required', 'Please login to add items to your cart');
       return;
     }
 
     // If service has multiple variants, show selection modal
-    if (variantCount > 1 && onSelectService) {
+    if (hasMultipleVariants && onSelectService) {
       onSelectService();
       return;
     }
 
     // If it's a per-unit pricing service, show measurement modal
-    if (pricing_type === 'per_unit' && unit_price) {
+    if (isPerUnitPricing) {
       setShowMeasurementModal(true);
       return;
     }
@@ -92,10 +129,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       id,
       title,
       description,
-      service_id: id, // Use id as service_id for ServiceOption
+      service_id: id,
       price: price || 0,
       duration: duration || '',
-      features: [], // Default empty features array
+      features: [],
       is_active: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -107,9 +144,21 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     };
 
     await addToCart(service, price);
-  };
+  }, [
+    isAuthenticated, 
+    hasMultipleVariants, 
+    onSelectService, 
+    isPerUnitPricing, 
+    id, 
+    title, 
+    description, 
+    price, 
+    duration, 
+    category, 
+    addToCart
+  ]);
 
-  const handleMeasurementChange = (value: string) => {
+  const handleMeasurementChange = useCallback((value: string) => {
     setMeasurement(value);
     const numValue = parseFloat(value);
     
@@ -119,9 +168,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     } else {
       setCalculatedPrice(0);
     }
-  };
+  }, [unit_price]);
 
-  const handleConfirmMeasurement = async () => {
+  const handleConfirmMeasurement = useCallback(async () => {
     const numMeasurement = parseFloat(measurement);
     
     if (isNaN(numMeasurement) || numMeasurement <= 0) {
@@ -167,50 +216,115 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     setShowMeasurementModal(false);
     setMeasurement('');
     setCalculatedPrice(0);
-  };
+  }, [
+    measurement, 
+    min_measurement, 
+    max_measurement, 
+    unit_measure, 
+    unit_price, 
+    calculatedPrice, 
+    id, 
+    title, 
+    description, 
+    duration, 
+    category, 
+    addToCart
+  ]);
+
+  const handleCloseModal = useCallback(() => {
+    setShowMeasurementModal(false);
+    setMeasurement('');
+    setCalculatedPrice(0);
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    setImageError(true);
+  }, []);
+
+  // Memoize styles to prevent recalculation on every render
+  const cardStyles = useMemo(() => [
+    styles.card, 
+    { backgroundColor: theme.colors.surface }
+  ], [theme.colors.surface]);
+
+  const titleStyles = useMemo(() => [
+    styles.title, 
+    { color: theme.colors.onSurface }
+  ], [theme.colors.onSurface]);
+
+  const descriptionStyles = useMemo(() => [
+    styles.description, 
+    { color: theme.colors.onSurfaceVariant }
+  ], [theme.colors.onSurfaceVariant]);
+
+  const priceStyles = useMemo(() => [
+    styles.price, 
+    { color: theme.colors.primary }
+  ], [theme.colors.primary]);
+
+  const unitPriceStyles = useMemo(() => [
+    styles.unitPrice, 
+    { color: theme.colors.onSurfaceVariant }
+  ], [theme.colors.onSurfaceVariant]);
+
+  const variantCountStyles = useMemo(() => [
+    styles.variantCount, 
+    { color: theme.colors.onSurfaceVariant }
+  ], [theme.colors.onSurfaceVariant]);
+
+  const durationStyles = useMemo(() => [
+    styles.duration, 
+    { color: theme.colors.onSurfaceVariant }
+  ], [theme.colors.onSurfaceVariant]);
+
+  // Fallback image source
+  const imageSource = useMemo(() => {
+    if (imageError || !image) {
+      return { uri: 'https://via.placeholder.com/300x200?text=No+Image' };
+    }
+    return { uri: image };
+  }, [image, imageError]);
 
   return (
-    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+    <Card style={cardStyles}>
       <TouchableOpacity onPress={handleViewService} activeOpacity={0.9}>
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: image || 'https://via.placeholder.com/300x200' }}
+            source={imageSource}
             style={styles.image}
             resizeMode="cover"
+            onError={handleImageError}
+            accessibilityLabel={title}
+            accessibilityRole="image"
           />
         </View>
         <Card.Content style={styles.content}>
-          <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
+          <Text variant="titleMedium" style={titleStyles}>
             {title || 'Service Title'}
           </Text>
-          <Text variant="bodyMedium" style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
+          <Text variant="bodyMedium" style={descriptionStyles}>
             {description || 'Service Description'}
           </Text>
           
           {(price !== undefined && price !== null) && (
             <View style={styles.priceContainer}>
               <View style={styles.priceInfo}>
-                <Text variant="titleLarge" style={[styles.price, { color: theme.colors.primary }]}>
-                  {pricing_type === 'per_unit' && unit_price 
-                    ? `€${unit_price.toFixed(2)}/${unit_measure}`
-                    : variantCount > 1 
-                      ? `From €${(price || 0).toFixed(2)}`
-                      : `€${(price || 0).toFixed(2)}`
-                  }
+                <Text variant="titleLarge" style={priceStyles}>
+                  {displayPrice}
                 </Text>
-                {pricing_type === 'per_unit' && (
-                  <Text variant="bodySmall" style={[styles.unitPrice, { color: theme.colors.onSurfaceVariant }]}>
+                {isPerUnitPricing && (
+                  <Text variant="bodySmall" style={unitPriceStyles}>
                     Per {unit_measure}
                   </Text>
                 )}
-                {variantCount > 1 && (
-                  <Text variant="bodySmall" style={[styles.variantCount, { color: theme.colors.onSurfaceVariant }]}>
+                {hasMultipleVariants && (
+                  <Text variant="bodySmall" style={variantCountStyles}>
                     {variantCount} options available
                   </Text>
                 )}
               </View>
               {duration && (
-                <Text variant="bodySmall" style={[styles.duration, { color: theme.colors.onSurfaceVariant }]}>
+                <Text variant="bodySmall" style={durationStyles}>
                   {duration}
                 </Text>
               )}
@@ -236,16 +350,16 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 onPress={handleAddToCart}
                 style={[styles.button, styles.cartButton]}
                 contentStyle={styles.buttonContent}
-                disabled={loading || isServiceInCart(id)}
+                disabled={loading || isInCart}
                 icon={({ size, color }) => (
                   <Ionicons 
-                    name={isServiceInCart(id) ? "checkmark" : variantCount > 1 ? "options" : "cart"} 
+                    name={buttonIcon} 
                     size={size} 
                     color={color} 
                   />
                 )}
               >
-                {isServiceInCart(id) ? 'In Cart' : variantCount > 1 ? 'Choose Option' : 'Add to Cart'}
+                {buttonText}
               </Button>
             )}
           </View>
@@ -256,7 +370,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       <Portal>
         <Modal
           visible={showMeasurementModal}
-          onDismiss={() => setShowMeasurementModal(false)}
+          onDismiss={handleCloseModal}
           style={[styles.modal, { backgroundColor: theme.colors.surface }]}
         >
           <View style={styles.modalContent}>
@@ -280,6 +394,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 onChangeText={handleMeasurementChange}
                 keyboardType="numeric"
                 autoFocus
+                accessibilityLabel="Measurement input"
+                accessibilityHint="Enter the measurement for this service"
               />
               <Text variant="bodySmall" style={[styles.unitLabel, { color: theme.colors.onSurfaceVariant }]}>
                 {unit_measure}
@@ -300,7 +416,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             <View style={styles.modalButtons}>
               <Button
                 mode="outlined"
-                onPress={() => setShowMeasurementModal(false)}
+                onPress={handleCloseModal}
                 style={styles.modalButton}
               >
                 Cancel
@@ -319,7 +435,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       </Portal>
     </Card>
   );
-};
+});
+
+// Add display name for debugging
+ServiceCard.displayName = 'ServiceCard';
 
 const styles = StyleSheet.create({
   card: {
@@ -395,7 +514,7 @@ const styles = StyleSheet.create({
   buttonContent: {
     paddingVertical: 4,
   },
-  // Modal styles
+  // Modal styles - optimized for better performance
   modal: {
     margin: 20,
     borderRadius: 12,

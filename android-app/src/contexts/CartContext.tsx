@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cartAPI, CartItem, CartSummary } from '../services/cartAPI';
 import { servicesAPI, Service } from '../services/servicesAPI';
 import { useAuth } from './AuthContext';
@@ -32,6 +33,13 @@ interface CartProviderProps {
   children: ReactNode;
 }
 
+// Cache configuration
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CART_CACHE_KEY = 'cart_items_cache';
+const CART_CACHE_TIME_KEY = 'cart_items_cache_time';
+const SERVICES_CACHE_KEY = 'services_cache';
+const SERVICES_CACHE_TIME_KEY = 'services_cache_time';
+
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -41,38 +49,81 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   });
   const [serviceCategories, setServiceCategories] = useState<Service[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  // Load cart and service categories when user changes
+  // Optimized useEffect with proper dependencies and caching
   useEffect(() => {
-    if (user && isAuthenticated) {
-      refreshCart();
-      refreshServiceCategories();
-    } else {
-      // Clear cart when user logs out
-      setCartItems([]);
-      setCartSummary({
-        totalItems: 0,
-        totalPrice: 0
-      });
-      setServiceCategories([]);
-    }
-  }, [user, isAuthenticated]);
+    const initializeCart = async () => {
+      if (user && isAuthenticated && !initialized) {
+        setInitialized(true);
+        await Promise.all([
+          refreshCart(),
+          refreshServiceCategories()
+        ]);
+      } else if (!isAuthenticated) {
+        // Clear cart when user logs out
+        setCartItems([]);
+        setCartSummary({
+          totalItems: 0,
+          totalPrice: 0
+        });
+        setServiceCategories([]);
+        setInitialized(false);
+        // Clear cache when user logs out
+        await AsyncStorage.multiRemove([
+          CART_CACHE_KEY,
+          CART_CACHE_TIME_KEY,
+          SERVICES_CACHE_KEY,
+          SERVICES_CACHE_TIME_KEY
+        ]);
+      }
+    };
 
-  // Refresh cart data
-  const refreshCart = async () => {
+    initializeCart();
+  }, [user?.id, isAuthenticated, initialized]); // Only depend on user ID, not entire user object
+
+  // Optimized refresh cart with caching
+  const refreshCart = useCallback(async (forceRefresh = false) => {
     if (!user || !isAuthenticated) {
       console.log('No user or not authenticated, skipping cart refresh');
       return;
     }
     
     try {
+      // Check cache first
+      if (!forceRefresh) {
+        const cachedData = await AsyncStorage.getItem(CART_CACHE_KEY);
+        const cacheTime = await AsyncStorage.getItem(CART_CACHE_TIME_KEY);
+        
+        if (cachedData && cacheTime) {
+          const timeDiff = Date.now() - parseInt(cacheTime);
+          if (timeDiff < CACHE_DURATION) {
+            const { items, summary } = JSON.parse(cachedData);
+            setCartItems(items || []);
+            setCartSummary(summary || { totalItems: 0, totalPrice: 0 });
+            return;
+          }
+        }
+      }
+      
       setLoading(true);
       const [items, summary] = await Promise.all([
         cartAPI.getCartItems(),
         cartAPI.getCartSummary()
       ]);
-      setCartItems(items || []);
-      setCartSummary(summary || { totalItems: 0, totalPrice: 0 });
+      
+      const cartData = {
+        items: items || [],
+        summary: summary || { totalItems: 0, totalPrice: 0 }
+      };
+      
+      setCartItems(cartData.items);
+      setCartSummary(cartData.summary);
+      
+      // Cache the data
+      await AsyncStorage.setItem(CART_CACHE_KEY, JSON.stringify(cartData));
+      await AsyncStorage.setItem(CART_CACHE_TIME_KEY, Date.now().toString());
+      
     } catch (error) {
       console.error('Error refreshing cart:', error);
       // Set fallback values to prevent undefined errors
@@ -81,22 +132,47 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, isAuthenticated]);
 
-  // Refresh service categories
-  const refreshServiceCategories = async () => {
+  // Optimized refresh service categories with caching
+  const refreshServiceCategories = useCallback(async (forceRefresh = false) => {
     try {
+      // Check cache first
+      if (!forceRefresh) {
+        const cachedServices = await AsyncStorage.getItem(SERVICES_CACHE_KEY);
+        const cacheTime = await AsyncStorage.getItem(SERVICES_CACHE_TIME_KEY);
+        
+        if (cachedServices && cacheTime) {
+          const timeDiff = Date.now() - parseInt(cacheTime);
+          if (timeDiff < CACHE_DURATION) {
+            const services = JSON.parse(cachedServices);
+            setServiceCategories(services);
+            return;
+          }
+        }
+      }
+      
       console.log('Refreshing service categories...');
       const services = await servicesAPI.getAllServices();
       console.log('Services response:', services);
       setServiceCategories(services);
+      
+      // Cache the services
+      await AsyncStorage.setItem(SERVICES_CACHE_KEY, JSON.stringify(services));
+      await AsyncStorage.setItem(SERVICES_CACHE_TIME_KEY, Date.now().toString());
+      
     } catch (error) {
       console.error('Error refreshing service categories:', error);
     }
-  };
+  }, []);
 
-  // Add service to cart
-  const addToCart = async (service: any, calculatedPrice?: number, userInputs?: any): Promise<boolean> => {
+  // Optimized check if service is in cart with memoization
+  const isServiceInCart = useCallback((serviceId: string): boolean => {
+    return cartItems.some(item => item.service_id === serviceId);
+  }, [cartItems]);
+
+  // Optimized add to cart with optimistic updates
+  const addToCart = useCallback(async (service: any, calculatedPrice?: number, userInputs?: any): Promise<boolean> => {
     if (!user || !isAuthenticated) {
       Alert.alert('Error', 'Please login to add items to cart');
       return false;
@@ -121,8 +197,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
       await cartAPI.addToCart(cartItemData);
       
-      // Refresh cart to get updated data
-      await refreshCart();
+      // Force refresh cart to get updated data and clear cache
+      await refreshCart(true);
       Alert.alert('Success', `${service.title} added to cart!`);
       return true;
     } catch (error) {
@@ -132,16 +208,16 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, isAuthenticated, isServiceInCart, refreshCart]);
 
-  // Remove item from cart
-  const removeFromCart = async (cartItemId: string): Promise<boolean> => {
+  // Optimized remove item from cart
+  const removeFromCart = useCallback(async (cartItemId: string): Promise<boolean> => {
     if (!user || !isAuthenticated) return false;
     
     try {
       setLoading(true);
       await cartAPI.removeFromCart(cartItemId);
-      await refreshCart();
+      await refreshCart(true); // Force refresh to clear cache
       return true;
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -150,10 +226,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, isAuthenticated, refreshCart]);
 
-  // Update item quantity
-  const updateQuantity = async (cartItemId: string, quantity: number): Promise<boolean> => {
+  // Optimized update item quantity
+  const updateQuantity = useCallback(async (cartItemId: string, quantity: number): Promise<boolean> => {
     if (!user || !isAuthenticated) return false;
     
     if (quantity < 1) {
@@ -163,7 +239,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       await cartAPI.updateCartItem(cartItemId, { quantity });
-      await refreshCart();
+      await refreshCart(true); // Force refresh to clear cache
       return true;
     } catch (error) {
       console.error('Error updating quantity:', error);
@@ -172,10 +248,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, isAuthenticated, removeFromCart, refreshCart]);
 
-  // Clear entire cart
-  const clearCart = async (): Promise<boolean> => {
+  // Optimized clear entire cart
+  const clearCart = useCallback(async (): Promise<boolean> => {
     if (!user || !isAuthenticated) return false;
 
     try {
@@ -186,6 +262,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         totalItems: 0,
         totalPrice: 0
       });
+      
+      // Clear cache
+      await AsyncStorage.multiRemove([CART_CACHE_KEY, CART_CACHE_TIME_KEY]);
+      
       Alert.alert('Success', 'Cart cleared successfully');
       return true;
     } catch (error) {
@@ -195,14 +275,10 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, isAuthenticated]);
 
-  // Check if service is in cart
-  const isServiceInCart = (serviceId: string): boolean => {
-    return cartItems.some(item => item.service_id === serviceId);
-  };
-
-  const value: CartContextType = {
+  // Memoize context value to prevent unnecessary re-renders
+  const value: CartContextType = useMemo(() => ({
     cartItems,
     cartSummary,
     serviceCategories,
@@ -214,7 +290,19 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     refreshCart,
     refreshServiceCategories,
     isServiceInCart
-  };
+  }), [
+    cartItems,
+    cartSummary,
+    serviceCategories,
+    loading,
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    clearCart,
+    refreshCart,
+    refreshServiceCategories,
+    isServiceInCart
+  ]);
 
   return (
     <CartContext.Provider value={value}>
