@@ -15,9 +15,9 @@ import {
   NativeSyntheticEvent,
   Image,
 } from 'react-native';
-import { Text, Button, useTheme } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+ 
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -37,7 +37,6 @@ interface ImageCarouselProps {
   height?: number;
   autoPlay?: boolean;
   autoPlayInterval?: number;
-  showDots?: boolean;
   showText?: boolean;
 }
 
@@ -46,11 +45,9 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
   height = 300,
   autoPlay = true,
   autoPlayInterval = 5000,
-  showDots = true,
   showText = true,
 }) => {
   const theme = useTheme();
-  const navigation = useNavigation<any>();
   const scrollViewRef = useRef<ScrollView>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -111,28 +108,9 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
     }
   }, [autoPlay]);
 
-  // Memoized navigation handler
-  const handleViewServices = useCallback(() => {
-    navigation.navigate('Services');
-  }, [navigation]);
+  
 
-  // Memoized pagination dots
-  const paginationDots = useMemo(() => {
-    return images.map((_, index) => (
-      <View
-        key={index}
-        testID="pagination-dot"
-        style={[
-          styles.paginationDot,
-          {
-            backgroundColor: index === currentIndex 
-              ? theme.colors.primary 
-              : theme.colors.outline,
-          },
-        ]}
-      />
-    ));
-  }, [images, currentIndex, theme.colors.primary, theme.colors.outline]);
+  
 
   if (!images || images.length === 0) {
     return null;
@@ -179,25 +157,9 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = ({
         ))}
       </ScrollView>
       
-      {/* View Services Button - Centered */}
-      <View style={styles.centerButtonContainer}>
-        <Button
-          mode="outlined"
-          onPress={handleViewServices}
-          style={styles.viewServicesButton}
-          contentStyle={styles.buttonContent}
-          textColor="white"
-        >
-          View Services
-        </Button>
-      </View>
       
-      {/* Pagination Indicators */}
-      {showDots && images.length > 1 && (
-        <View style={styles.paginationContainer}>
-          {paginationDots}
-        </View>
-      )}
+      
+      
     </View>
   );
 };
@@ -223,28 +185,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
-  centerButtonContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  viewServicesButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'white',
-    borderRadius: 15,
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-  },
-  buttonContent: {
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-  },
+  
   textGradient: {
     position: 'absolute',
     bottom: 0,
@@ -267,21 +208,6 @@ const styles = StyleSheet.create({
     color: 'white',
     opacity: 0.9,
   },
-  paginationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 80,
-    left: 0,
-    right: 0,
-    paddingVertical: 10,
-  },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
-  },
+  
 });
 

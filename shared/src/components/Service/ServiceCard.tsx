@@ -28,6 +28,7 @@ interface ServiceCardProps {
   max_measurement?: number;
   measurement_step?: number;
   measurement_placeholder?: string;
+  compact?: boolean;
 }
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ 
@@ -44,7 +45,8 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   min_measurement,
   max_measurement,
   measurement_step,
-  measurement_placeholder
+  measurement_placeholder,
+  compact = false
 }) => {
   const theme = useTheme();
   const { isAuthenticated } = useAuth();
@@ -149,27 +151,27 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   };
 
   return (
-    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+    <Card style={[styles.card, compact ? styles.cardCompact : null, { backgroundColor: theme.colors.surface }]}> 
       <TouchableOpacity onPress={handleViewService} activeOpacity={0.9}>
-        <View style={styles.imageContainer}>
+        <View style={[styles.imageContainer, compact ? styles.imageContainerCompact : null]}>
           <Image
             source={{ uri: image || 'https://via.placeholder.com/300x200' }}
-            style={styles.image}
+            style={[styles.image, compact ? styles.imageCompact : null]}
             resizeMode="cover"
           />
         </View>
-        <Card.Content style={styles.content}>
-          <Text variant="titleMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
+        <Card.Content style={[styles.content, compact ? styles.contentCompact : null]}>
+          <Text variant={compact ? 'titleSmall' : 'titleMedium'} style={[styles.title, compact ? styles.titleCompact : null, { color: theme.colors.onSurface }]}>
             {title || 'Service Title'}
           </Text>
-          <Text variant="bodyMedium" style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
+          <Text variant={compact ? 'bodySmall' : 'bodyMedium'} style={[styles.description, compact ? styles.descriptionCompact : null, { color: theme.colors.onSurfaceVariant }]}>
             {description || 'Service Description'}
           </Text>
           
           {(price !== undefined && price !== null) && (
             <View style={styles.priceContainer}>
               <View style={styles.priceInfo}>
-                <Text variant="titleLarge" style={[styles.price, { color: theme.colors.primary }]}>
+                <Text variant={compact ? 'titleMedium' : 'titleLarge'} style={[styles.price, compact ? styles.priceCompact : null, { color: theme.colors.primary }]}>
                   {pricing_type === 'per_unit' && unit_price 
                     ? `€${unit_price.toFixed(2)}/${unit_measure}`
                     : `€${(price || 0).toFixed(2)}`
@@ -190,24 +192,12 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           )}
 
           <View style={styles.buttonContainer}>
-            <Button
-              mode="outlined"
-              onPress={handleViewService}
-              style={[styles.button, styles.viewButton]}
-              contentStyle={styles.buttonContent}
-              icon={({ size, color }) => (
-                <Ionicons name="arrow-forward" size={size} color={color} />
-              )}
-            >
-              View
-            </Button>
-            
             {isAuthenticated && (
               <Button
                 mode="contained"
                 onPress={handleAddToCart}
-                style={[styles.button, styles.cartButton]}
-                contentStyle={styles.buttonContent}
+                style={[styles.button, styles.cartButton, compact ? styles.buttonCompact : null]}
+                contentStyle={compact ? styles.buttonContentCompact : styles.buttonContent}
                 disabled={loading || isServiceInCart(id)}
                 icon={({ size, color }) => (
                   <Ionicons 
@@ -306,27 +296,48 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
   },
+  cardCompact: {
+    marginBottom: 12,
+    borderRadius: 12,
+  },
   imageContainer: {
     height: 200,
     overflow: 'hidden',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
+  imageContainerCompact: {
+    height: 140,
+  },
   image: {
     width: '100%',
     height: '100%',
   },
+  imageCompact: {
+    height: '100%',
+  },
   content: {
     padding: 16,
+  },
+  contentCompact: {
+    padding: 12,
   },
   title: {
     fontWeight: '600',
     marginBottom: 8,
     lineHeight: 24,
   },
+  titleCompact: {
+    marginBottom: 6,
+    lineHeight: 20,
+  },
   description: {
     marginBottom: 16,
     lineHeight: 20,
+  },
+  descriptionCompact: {
+    marginBottom: 10,
+    lineHeight: 18,
   },
   priceContainer: {
     flexDirection: 'row',
@@ -338,6 +349,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   price: {
+    fontWeight: '700',
+  },
+  priceCompact: {
     fontWeight: '700',
   },
   unitPrice: {
@@ -354,14 +368,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flex: 1,
   },
-  viewButton: {
-    flex: 1,
-  },
   cartButton: {
-    flex: 2,
+    flex: 1,
   },
   buttonContent: {
     paddingVertical: 4,
+  },
+  buttonCompact: {
+    borderRadius: 8,
+  },
+  buttonContentCompact: {
+    paddingVertical: 6,
   },
   // Modal styles
   modal: {

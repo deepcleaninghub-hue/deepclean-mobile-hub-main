@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   Alert,
   RefreshControl,
+  Linking,
 } from 'react-native';
-import { Text, Card, Button, Chip, useTheme, ActivityIndicator, TextInput } from 'react-native-paper';
+import { Text, Card, Button, Chip, useTheme, ActivityIndicator, TextInput, FAB } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../../components/AppHeader';
@@ -16,6 +17,7 @@ import { serviceOptionsAPI } from '../../services/serviceOptionsAPI';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { ServicesStackScreenProps } from '../../navigation/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = ServicesStackScreenProps<'ServicesMain'>;
 
@@ -23,17 +25,31 @@ const ServicesScreen = ({ navigation }: Props) => {
   const theme = useTheme();
   const [services, setServices] = useState<any[]>([]);
   const [serviceOptions, setServiceOptions] = useState<any[]>([]);
+  const [allServiceOptions, setAllServiceOptions] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showServiceOptions, setShowServiceOptions] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+  
+  
 
   // Fetch services and categories from API
   useEffect(() => {
     fetchData();
+    restoreUIState();
   }, []);
+
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchQuery]);
 
   const fetchData = async () => {
     try {
@@ -43,18 +59,30 @@ const ServicesScreen = ({ navigation }: Props) => {
       const servicesData = await servicesAPI.getAllServices();
       setServices(servicesData);
       
-      // Fetch all service options for "All" tab
-      const allServiceOptions = await serviceOptionsAPI.getAllServiceOptions();
-      setServiceOptions(allServiceOptions);
+      // Fetch all service options for default (no category selected)
+      const fetchedAllOptions = await serviceOptionsAPI.getAllServiceOptions();
+      setServiceOptions(fetchedAllOptions);
+      setAllServiceOptions(fetchedAllOptions);
       
-      // Use service titles as categories instead of separate categories
-      const serviceTitles = ['All', ...servicesData.map(service => service.title)];
+      // Use service titles as categories (no explicit "All" chip)
+      const serviceTitles = [...servicesData.map(service => service.title)];
       setCategories(serviceTitles);
     } catch (error) {
       console.error('Error fetching data:', error);
       Alert.alert('Error', 'Failed to load services');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const restoreUIState = async () => {
+    try {
+      const [storedCategory] = await Promise.all([
+        AsyncStorage.getItem('services:selectedCategory'),
+      ]);
+      if (storedCategory) setSelectedCategory(storedCategory);
+    } catch (e) {
+      // ignore restore errors
     }
   };
 
@@ -79,47 +107,47 @@ const ServicesScreen = ({ navigation }: Props) => {
 
   // Handle category selection
   const handleCategorySelect = async (category: string) => {
+    // Toggle selection: if already selected, clear to default (all)
+    if (selectedCategory === category) {
+      setSelectedCategory('');
+      setServiceOptions(allServiceOptions);
+      return;
+    }
+
     setSelectedCategory(category);
-    
-    if (category === 'All') {
-      // Show all service options when "All" is selected
-      setShowServiceOptions(true);
-      // Service options are already loaded in fetchData
-    } else {
-      // Find the selected service to get its ID
-      const selectedService = services.find(service => service.title === category);
-      if (selectedService) {
-        try {
-          setLoading(true);
-          const options = await serviceOptionsAPI.getServiceOptionsByCategory(selectedService.id);
-          setServiceOptions(options);
-          setShowServiceOptions(true);
-        } catch (error) {
-          console.error('Error fetching service options:', error);
-          Alert.alert('Error', 'Failed to load service options');
-          setShowServiceOptions(false);
-          setServiceOptions([]);
-        } finally {
-          setLoading(false);
-        }
+
+    // Find the selected service to get its ID
+    const selectedService = services.find(service => service.title === category);
+    if (selectedService) {
+      try {
+        setLoading(true);
+        const options = await serviceOptionsAPI.getServiceOptionsByCategory(selectedService.id);
+        setServiceOptions(options);
+      } catch (error) {
+        console.error('Error fetching service options:', error);
+        Alert.alert('Error', 'Failed to load service options');
+        setServiceOptions([]);
+      } finally {
+        setLoading(false);
       }
     }
   };
 
-  const filteredServices = selectedCategory === 'All' 
+  const filteredServices = selectedCategory === '' 
     ? services 
     : services.filter(service => service.title === selectedCategory);
 
   const filteredServiceOptions = serviceOptions.filter(option => {
     // Filter by category
-    const categoryMatch = selectedCategory === 'All' || option.services?.title === selectedCategory;
+    const categoryMatch = selectedCategory === '' || option.services?.title === selectedCategory;
     
     // Filter by search query
-    const searchMatch = searchQuery === '' || 
-      option.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      option.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      option.services?.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      option.services?.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = debouncedSearch.toLowerCase();
+    const searchMatch = q === '' || 
+      option.title.toLowerCase().includes(q) ||
+      option.description.toLowerCase().includes(q) ||
+      option.services?.title.toLowerCase().includes(q) ||
+      option.services?.category.toLowerCase().includes(q);
     
     return categoryMatch && searchMatch;
   });
@@ -137,9 +165,38 @@ const ServicesScreen = ({ navigation }: Props) => {
     navigation.navigate('Contact');
   };
 
+  const openWhatsAppSupport = async () => {
+    try {
+      const adminPhone = '+4916097044182';
+      const appUrl = `whatsapp://send?phone=${encodeURIComponent(adminPhone)}`;
+      const webUrl = `https://wa.me/${encodeURIComponent(adminPhone.replace(/[^\d]/g, ''))}`;
+
+      const canOpen = await Linking.canOpenURL(appUrl);
+      if (canOpen) {
+        await Linking.openURL(appUrl);
+        return;
+      }
+      await Linking.openURL(webUrl);
+    } catch (e) {
+      Alert.alert('Support', 'Unable to open WhatsApp on this device.');
+    }
+  };
+
+  // Voice search removed
+
+  const clearFilters = async () => {
+    setSelectedCategory('');
+    setServiceOptions(allServiceOptions);
+    try { await AsyncStorage.setItem('services:selectedCategory', ''); } catch {}
+  };
+
+  // Simple featured/recommended derivations
+  const featured = allServiceOptions.slice(0, 8);
+  const recommended = allServiceOptions.slice(0, 8);
+
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader />
+      <AppHeader title="Deep Cleaning Hub" />
       
       <ScrollView 
         style={styles.scrollView} 
@@ -150,11 +207,14 @@ const ServicesScreen = ({ navigation }: Props) => {
       >
         {/* Header Section */}
         <View style={styles.headerSection}>
-          <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
-            Our Professional Services
-          </Text>
-          <Text variant="bodyLarge" style={[styles.headerDescription, { color: theme.colors.onSurfaceVariant }]}>
-            Choose from our comprehensive range of cleaning and moving services
+          <View style={styles.headerRow}>
+            <Text variant="titleMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>Services</Text>
+          </View>
+          <Text
+            variant="bodySmall"
+            style={[styles.headerMeta, { color: theme.colors.onSurfaceVariant }]}
+          >
+            {filteredServiceOptions.length} options • {selectedCategory || 'All'}
           </Text>
         </View>
 
@@ -162,12 +222,14 @@ const ServicesScreen = ({ navigation }: Props) => {
         <View style={styles.searchContainer}>
           <TextInput
             mode="outlined"
-            placeholder="Search services..."
+            placeholder="Search services or categories"
             value={searchQuery}
             onChangeText={setSearchQuery}
             style={[styles.searchInput, { backgroundColor: theme.colors.surface }]}
             left={<TextInput.Icon icon="magnify" color={theme.colors.onSurfaceVariant} />}
-            right={searchQuery ? <TextInput.Icon icon="close" onPress={() => setSearchQuery('')} color={theme.colors.onSurfaceVariant} /> : null}
+            right={searchQuery ? (
+              <TextInput.Icon icon="close" onPress={() => setSearchQuery('')} color={theme.colors.onSurfaceVariant} />
+            ) : undefined}
             outlineColor={theme.colors.outline}
             activeOutlineColor={theme.colors.primary}
             textColor={theme.colors.onSurface}
@@ -175,31 +237,47 @@ const ServicesScreen = ({ navigation }: Props) => {
           />
         </View>
 
-        {/* Category Filter */}
+        {/* Quick actions */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsRowScroll}>
+          <View style={styles.quickActionsRow}>
+            <Button mode="outlined" icon={({size,color}) => (<Ionicons name="refresh" size={size} color={color} />)} onPress={() => Alert.alert('Repeat', 'Repeat last booking coming soon')} style={styles.quickChip}>Repeat last booking</Button>
+            <Button mode="outlined" icon={({size,color}) => (<Ionicons name="today" size={size} color={color} />)} onPress={() => Alert.alert('Schedule', 'Today scheduling coming soon')} style={styles.quickChip}>Today</Button>
+            <Button mode="outlined" icon={({size,color}) => (<Ionicons name="calendar" size={size} color={color} />)} onPress={() => Alert.alert('Schedule', 'Tomorrow scheduling coming soon')} style={styles.quickChip}>Tomorrow</Button>
+          </View>
+        </ScrollView>
+
+
+        
+        {/* Services - compact carousel */}
+        <View style={styles.servicesCarouselSection}>
+          <View style={styles.sectionHeaderRow}>
+            <Text variant="titleLarge" style={{ color: theme.colors.onSurface }}>Service Options</Text>
+          </View>
+          
+          {/* Category Filter */}
         <View style={styles.categoryContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-            {(categories || []).map((category) => (
-              <Chip
+            <Button mode="text" onPress={clearFilters} style={styles.clearFiltersBtn}>Clear</Button>
+            {(categories || []).map((category) => {
+              const isSelected = selectedCategory === category;
+              return (
+                <Chip
                 key={category}
-                mode={selectedCategory === category ? 'flat' : 'outlined'}
-                selected={selectedCategory === category}
+                mode={isSelected ? 'flat' : 'outlined'}
+                selected={isSelected}
                 onPress={() => handleCategorySelect(category)}
                 style={[
                   styles.categoryChip,
-                  selectedCategory === category && { backgroundColor: theme.colors.primary }
+                  isSelected ? { backgroundColor: theme.colors.primary } : { borderColor: theme.colors.primary }
                 ]}
-                textStyle={{
-                  color: selectedCategory === category ? theme.colors.onPrimary : theme.colors.primary
-                }}
-              >
-                {category}
-              </Chip>
-            ))}
+                textStyle={{ color: isSelected ? theme.colors.onPrimary : theme.colors.primary }}
+                >
+                  {category}
+                </Chip>
+              );
+            })}
           </ScrollView>
         </View>
-
-        {/* Services List */}
-        <View style={styles.servicesContainer}>
           {loading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -217,20 +295,53 @@ const ServicesScreen = ({ navigation }: Props) => {
                 {searchQuery 
                   ? `No services found for "${searchQuery}"`
                   : selectedCategory === 'All' 
-                    ? 'No service options available' 
-                    : `No options available for ${selectedCategory}`
+                  ? 'No service options available' 
+                  : `No options available for ${selectedCategory}`
                 }
               </Text>
             </View>
           ) : (
-            // Show service options (either all or filtered by category)
-            filteredServiceOptions.map((option) => (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselList}>
+              {filteredServiceOptions.map((option) => (
+                <View key={option.id || Math.random().toString()} style={{ width: 260, marginRight: 12 }}>
+                  <ServiceCard
+                    id={option.id || ''}
+                    title={option.title || ''}
+                    description={option.description || ''}
+                    image={option.image || 'https://via.placeholder.com/300x200'}
+                    price={option.price}
+                    duration={option.duration || ''}
+                    category={option.services?.category || ''}
+                    pricing_type={option.pricing_type}
+                    unit_price={option.unit_price}
+                    unit_measure={option.unit_measure}
+                    min_measurement={option.min_measurement}
+                    max_measurement={option.max_measurement}
+                    measurement_step={option.measurement_step}
+                    measurement_placeholder={option.measurement_placeholder}
+                    compact
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+        
+        
+  
+
+        {/* Recommended */}
+        <View style={styles.sectionHeaderRow}>
+          <Text variant="titleLarge" style={{ color: theme.colors.onSurface }}>Recommended for you</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselList}>
+          {recommended.map((option) => (
+            <View key={`r-${option.id || Math.random().toString()}`} style={{ width: 260, marginRight: 12 }}>
               <ServiceCard
-                key={option.id || Math.random().toString()}
                 id={option.id || ''}
                 title={option.title || ''}
                 description={option.description || ''}
-                image={option.image || ''}
+                image={option.image || 'https://via.placeholder.com/300x200'}
                 price={option.price}
                 duration={option.duration || ''}
                 category={option.services?.category || ''}
@@ -241,49 +352,61 @@ const ServicesScreen = ({ navigation }: Props) => {
                 max_measurement={option.max_measurement}
                 measurement_step={option.measurement_step}
                 measurement_placeholder={option.measurement_placeholder}
+                compact
               />
-            ))
-          )}
-        </View>
+            </View>
+          ))}
+        </ScrollView>
 
         {/* Call to Action */}
-        <Card style={[styles.ctaCard, { backgroundColor: theme.colors.primaryContainer }]}>
+        <Card style={[styles.ctaCard, { backgroundColor: theme.colors.surfaceVariant }] }>
           <Card.Content style={styles.ctaContent}>
-            <Text variant="titleLarge" style={[styles.ctaTitle, { color: theme.colors.onPrimary }]}>
-              Need a Custom Quote?
+            <View style={styles.ctaBadgeRow}>
+              <View style={[styles.ctaIconCircle, { backgroundColor: theme.colors.primary }]}>
+                <Ionicons name="sparkles" size={16} color={theme.colors.onPrimary} />
+              </View>
+              <Text style={[styles.ctaBadge, { color: theme.colors.primary }]}>Custom quotes, fast</Text>
+            </View>
+            <Text variant="titleLarge" style={[styles.ctaTitle, { color: theme.colors.onSurface }]}>
+              Need a tailored estimate?
             </Text>
-            <Text variant="bodyMedium" style={[styles.ctaDescription, { color: theme.colors.onPrimary }]}>
-              Contact us for personalized cleaning solutions tailored to your specific needs.
+            <Text variant="bodyMedium" style={[styles.ctaDescription, { color: theme.colors.onSurfaceVariant }]}>
+              Tell us your requirements and we’ll get back within minutes.
             </Text>
             <View style={styles.ctaButtons}>
               <Button
                 mode="contained"
+                onPress={handleGetInTouch}
+                style={[styles.ctaPrimary, { backgroundColor: theme.colors.primary }]}
+                contentStyle={styles.ctaPrimaryContent}
+                icon={({ size, color }) => (
+                  <Ionicons name="chatbubbles" size={size} color={color} />
+                )}
+              >
+                Get Quote
+              </Button>
+              <Button
+                mode="outlined"
                 onPress={handleCallNow}
-                style={[styles.ctaButton, { backgroundColor: theme.colors.onPrimary }]}
-                contentStyle={styles.buttonContent}
+                style={[styles.ctaSecondary, { borderColor: theme.colors.primary }]}
                 textColor={theme.colors.primary}
+                contentStyle={styles.ctaSecondaryContent}
                 icon={({ size, color }) => (
                   <Ionicons name="call" size={size} color={color} />
                 )}
               >
-                Call Now
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={handleGetInTouch}
-                style={[styles.ctaButtonOutlined, { borderColor: theme.colors.onPrimary }]}
-                textColor={theme.colors.onPrimary}
-                contentStyle={styles.buttonContent}
-                icon={({ size, color }) => (
-                  <Ionicons name="mail" size={size} color={color} />
-                )}
-              >
-                Get in Touch
+                Call
               </Button>
             </View>
           </Card.Content>
         </Card>
       </ScrollView>
+      <FAB
+        icon="message"
+        label="Help"
+        style={styles.supportFab}
+        onPress={openWhatsAppSupport}
+      />
     </SafeAreaView>
   );
 };
@@ -297,21 +420,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerSection: {
-    padding: 24,
-    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'flex-start',
     backgroundColor: '#ffffff',
-    marginBottom: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#ececec',
+  },
+  headerRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   headerTitle: {
-    textAlign: 'center',
-    marginBottom: 12,
+    textAlign: 'left',
+    marginBottom: 2,
     fontWeight: '700',
-    fontSize: 28,
-  },
-  headerDescription: {
-    textAlign: 'center',
-    lineHeight: 24,
     fontSize: 16,
+  },
+  headerMeta: {
+    textAlign: 'left',
+    lineHeight: 18,
+    fontSize: 12,
     opacity: 0.8,
   },
   searchContainer: {
@@ -329,6 +460,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  
   categoryContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -343,10 +475,96 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
-  servicesContainer: {
+  clearFiltersBtn: {
+    marginLeft: 8,
+    alignSelf: 'center',
+  },
+  servicesCarouselSection: {
+    paddingVertical: 8,
+  },
+  sectionHeaderRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  carouselList: {
+    paddingLeft: 16,
+    paddingRight: 8,
+    paddingBottom: 12,
+    gap: 12,
+  },
+  compactCard: {
+    width: 240,
+    marginRight: 12,
+    borderRadius: 14,
+  },
+  compactInner: {
+    overflow: 'hidden',
+    borderRadius: 14,
+  },
+  compactImage: {
+    height: 120,
+  },
+  compactContent: {
+    paddingTop: 8,
+  },
+  compactButtons: {
+    marginTop: 8,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  compactPrimaryBtn: {
+    borderRadius: 10,
+    flexGrow: 1,
+  },
+  compactSecondaryBtn: {
+    borderRadius: 10,
+  },
+  heroBanner: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    gap: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  heroTitle: {
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    opacity: 0.8,
+  },
+  heroActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  heroBtn: {
+    borderRadius: 10,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingBottom: 8,
+  },
+  quickActionsRowScroll: {
+    paddingHorizontal: 16,
+  },
+  quickChip: {
+    borderRadius: 16,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 4,
+  },
+  badgeChip: {
+    borderRadius: 12,
+  },
+  supportFab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
   },
   loadingContainer: {
     flex: 1,
@@ -372,49 +590,68 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   ctaCard: {
-    margin: 20,
-    borderRadius: 20,
-    elevation: 4,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderRadius: 12,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
   },
   ctaContent: {
     alignItems: 'center',
-    padding: 28,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  ctaBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  ctaIconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaBadge: {
+    fontWeight: '700',
   },
   ctaTitle: {
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: 16,
   },
   ctaDescription: {
     textAlign: 'center',
-    marginBottom: 28,
-    lineHeight: 24,
-    fontSize: 16,
+    marginBottom: 12,
+    lineHeight: 18,
+    fontSize: 12,
   },
   ctaButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
     width: '100%',
   },
-  ctaButton: {
+  ctaPrimary: {
     flex: 1,
     borderRadius: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
   },
-  ctaButtonOutlined: {
+  ctaPrimaryContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  ctaSecondary: {
     flex: 1,
     borderRadius: 12,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+  },
+  ctaSecondaryContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   buttonContent: {
     paddingVertical: 12,

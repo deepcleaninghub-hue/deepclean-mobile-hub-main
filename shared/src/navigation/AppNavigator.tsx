@@ -9,11 +9,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { MainTabParamList, HomeStackParamList, ServicesStackParamList, CartStackParamList, OrdersStackParamList, ProfileStackParamList } from './types';
+import { MainTabParamList, ServicesStackParamList, CartStackParamList, OrdersStackParamList, ProfileStackParamList } from './types';
 import { theme } from '../utils/theme';
 
 // Import screens (we'll create these next)
-import { HomeScreen } from '../screens/main/HomeScreen';
 import ServicesScreen from '../screens/main/ServicesScreen';
 import { CartScreen } from '../screens/main/CartScreen';
 import CheckoutScreen from '../screens/main/CheckoutScreen';
@@ -25,21 +24,10 @@ import EditProfileScreen from '../screens/main/EditProfileScreen';
 import ContactScreen from '../screens/main/ContactScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-const HomeStackNavigator = createStackNavigator<HomeStackParamList>();
 const ServicesStackNavigator = createStackNavigator<ServicesStackParamList>();
 const CartStackNavigator = createStackNavigator<CartStackParamList>();
 const OrdersStackNavigator = createStackNavigator<OrdersStackParamList>();
 const ProfileStackNavigator = createStackNavigator<ProfileStackParamList>();
-
-// Home Stack
-const HomeStack = () => {
-  return (
-    <HomeStackNavigator.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStackNavigator.Screen name="HomeMain" component={HomeScreen} />
-      <HomeStackNavigator.Screen name="Contact" component={ContactScreen} />
-    </HomeStackNavigator.Navigator>
-  );
-};
 
 // Services Stack
 const ServicesStack = () => {
@@ -90,9 +78,6 @@ export const AppNavigator: React.FC = () => {
           let iconName: keyof typeof Ionicons.glyphMap;
 
           switch (route.name) {
-            case 'Home':
-              iconName = focused ? 'home' : 'home-outline';
-              break;
             case 'Services':
               iconName = focused ? 'briefcase' : 'briefcase-outline';
               break;
@@ -130,11 +115,6 @@ export const AppNavigator: React.FC = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeStack} 
-        options={{ title: 'Deep Clean Hub' }}
-      />
       <Tab.Screen 
         name="Services" 
         component={ServicesStack} 

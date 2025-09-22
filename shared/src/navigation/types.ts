@@ -23,7 +23,6 @@ export type AuthStackParamList = {
 
 // Main Tab Navigator
 export type MainTabParamList = {
-  Home: NavigatorScreenParams<HomeStackParamList>;
   Services: NavigatorScreenParams<ServicesStackParamList>;
   Cart: NavigatorScreenParams<CartStackParamList>;
   Orders: NavigatorScreenParams<OrdersStackParamList>;
@@ -31,10 +30,7 @@ export type MainTabParamList = {
 };
 
 // Home Stack
-export type HomeStackParamList = {
-  HomeMain: undefined;
-  Contact: undefined;
-};
+// Removed Home stack; Services is now main
 
 // Services Stack
 export type ServicesStackParamList = {
@@ -83,8 +79,6 @@ export type RootStackScreenProps<T extends keyof RootStackParamList> = StackScre
 export type AuthStackScreenProps<T extends keyof AuthStackParamList> = StackScreenProps<AuthStackParamList, T>;
 
 export type MainTabScreenProps<T extends keyof MainTabParamList> = BottomTabScreenProps<MainTabParamList, T>;
-
-export type HomeStackScreenProps<T extends keyof HomeStackParamList> = StackScreenProps<HomeStackParamList, T>;
 
 export type ServicesStackScreenProps<T extends keyof ServicesStackParamList> = StackScreenProps<ServicesStackParamList, T>;
 
