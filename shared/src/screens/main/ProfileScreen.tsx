@@ -1,19 +1,28 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Card, Button, Avatar, Divider, useTheme, IconButton, Badge, ActivityIndicator } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, RefreshControl, Platform, Linking, Dimensions, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Text, Card, Button, Avatar, Divider, useTheme, IconButton, Badge, ActivityIndicator, TextInput, Portal } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import AppHeader from '../../components/AppHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProfileStackScreenProps } from '../../navigation/types';
+import { profileAPI, ChangePasswordData } from '../../services/profileAPI';
 
 type Props = ProfileStackScreenProps<'ProfileMain'>;
 
 const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
+  const { height: screenHeight } = Dimensions.get('window');
   const { user, signOut, isAuthenticated, loading } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [changePasswordModalVisible, setChangePasswordModalVisible] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [deleteAccountStep, setDeleteAccountStep] = useState(0); // 0: not started, 1: first confirmation, 2: second confirmation
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('');
 
   // Helper function to get user initials safely
   const getUserInitials = () => {
@@ -22,10 +31,15 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
   };
 
-  // Helper function to get user display name safely
+  // Helper function to get user display name safely (handles camelCase and snake_case)
   const getUserDisplayName = () => {
     if (!user) return 'Guest User';
-    if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
+    const first = (user as any).firstName || (user as any).first_name || '';
+    const last = (user as any).lastName || (user as any).last_name || '';
+    const full = `${first} ${last}`.trim();
+    if (full.length > 0) return full;
+    if (first) return first;
+    if (last) return last;
     return user.email || 'Guest User';
   };
 
@@ -61,6 +75,179 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
+  const handleChangePassword = () => {
+    setChangePasswordModalVisible(true);
+  };
+
+  const handleChangePasswordSubmit = async () => {
+    if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert('Error', 'New password must be at least 6 characters long');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'New passwords do not match');
+      return;
+    }
+
+    setChangingPassword(true);
+
+    try {
+      const passwordData = {
+        currentPassword: currentPassword,
+        newPassword: newPassword
+      };
+
+      const result = await profileAPI.changePassword(passwordData);
+
+      if (result.success) {
+        Alert.alert('Success', 'Password changed successfully', [
+          {
+            text: 'OK',
+            onPress: () => {
+              setChangePasswordModalVisible(false);
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+            }
+          }
+        ]);
+      } else {
+        Alert.alert('Error', result.error || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      Alert.alert('Error', 'An unexpected error occurred');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleCancelChangePassword = () => {
+    setChangePasswordModalVisible(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  const handleDeleteAccount = () => {
+    if (deleteAccountStep === 0) {
+      // First step: Initial warning
+      Alert.alert(
+        '⚠️ Delete Account - Step 1 of 2',
+        'This action will permanently delete your account and ALL associated data including:\n\n• All your bookings and orders\n• Personal information\n• Payment history\n• Account settings\n\nThis action CANNOT be undone.\n\nAre you sure you want to continue?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'I Understand, Continue', 
+            style: 'destructive', 
+            onPress: () => {
+              setDeleteAccountStep(1);
+              // Show second confirmation after a brief delay
+              setTimeout(() => {
+                handleSecondDeleteConfirmation();
+              }, 500);
+            }
+          }
+        ]
+      );
+    }
+  };
+
+  const handleSecondDeleteConfirmation = () => {
+    Alert.alert(
+      '🗑️ Delete Account - Step 2 of 2',
+      'FINAL WARNING: You are about to permanently delete your account.\n\nTo confirm, please type "DELETE" in the text field below and tap "Delete Forever".',
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => setDeleteAccountStep(0) },
+        { 
+          text: 'Type DELETE to Confirm', 
+          style: 'destructive', 
+          onPress: () => {
+            setDeleteAccountStep(2);
+            // Show input dialog
+            setTimeout(() => {
+              handleDeleteConfirmationInput();
+            }, 300);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteConfirmationInput = () => {
+    Alert.prompt(
+      'Final Confirmation',
+      'Type "DELETE" exactly as shown to permanently delete your account:',
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => setDeleteAccountStep(0) },
+        { 
+          text: 'Delete Forever', 
+          style: 'destructive', 
+          onPress: (text: string | undefined) => {
+            if (text === 'DELETE') {
+              // Proceed with actual deletion
+              handleActualDeleteAccount();
+            } else {
+              Alert.alert(
+                'Invalid Confirmation',
+                'You must type "DELETE" exactly as shown. Account deletion cancelled.',
+                [{ text: 'OK', onPress: () => setDeleteAccountStep(0) }]
+              );
+            }
+          }
+        }
+      ],
+      'plain-text',
+      '',
+      'default'
+    );
+  };
+
+  const handleActualDeleteAccount = () => {
+    Alert.alert(
+      'Account Deleted',
+      'Your account has been permanently deleted. This feature will be implemented with the backend API.',
+      [
+        { 
+          text: 'OK', 
+          onPress: () => {
+            setDeleteAccountStep(0);
+            // Here you would call the actual delete API
+            // For now, just show the coming soon message
+          }
+        }
+      ]
+    );
+  };
+
+  const handleRateApp = async () => {
+    try {
+      const iosUrl = 'itms-apps://itunes.apple.com/app/id000000000?action=write-review';
+      const androidUrl = 'market://details?id=com.deepcleanhub.app';
+      const url = Platform.OS === 'ios' ? iosUrl : androidUrl;
+      const fallback = Platform.OS === 'ios'
+        ? 'https://apps.apple.com/app/id000000000'
+        : 'https://play.google.com/store/apps/details?id=com.deepcleanhub.app';
+      const can = await Linking.canOpenURL(url);
+      await Linking.openURL(can ? url : fallback);
+    } catch {}
+  };
+
+  const getAppVersion = () => {
+    try {
+      const Constants = require('expo-constants').default;
+      return Constants?.manifest2?.extra?.expoClient?.version || Constants?.manifest?.version || '1.0.0';
+    } catch {
+      return '1.0.0';
+    }
+  };
+
   // Show loading state if auth is still loading
   if (loading) {
     return (
@@ -81,264 +268,90 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <AppHeader />
-      {/* Enhanced Header */}
-      <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryContainer]}
-        style={styles.headerGradient}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text variant="headlineMedium" style={styles.headerTitle}>
-              Profile
-            </Text>
-            <Text variant="bodyMedium" style={styles.headerSubtitle}>
-              Manage your account
-            </Text>
-          </View>
-          <View style={styles.headerRight}>
-            <IconButton
-              icon="bell"
-              size={24}
-              iconColor={theme.colors.onPrimary}
-              onPress={() => handleMenuPress('Notifications')}
-              style={styles.headerIcon}
-            />
-          </View>
-        </View>
-      </LinearGradient>
-      
+    <SafeAreaView style={styles.container}>
+      <AppHeader title="Profile"/>
       <ScrollView 
         style={styles.scrollContainer} 
+        contentContainerStyle={[styles.scrollContent, { minHeight: screenHeight }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        
         {/* Enhanced Profile Section */}
         <View style={styles.profileSection}>
           <Card style={[styles.profileCard, { backgroundColor: theme.colors.surface }]}>
-            <Card.Content style={styles.profileContent}>
-              <View style={styles.avatarContainer}>
-                <Avatar.Text 
-                  size={100} 
-                  label={getUserInitials()}
-                  style={[styles.avatar, { backgroundColor: theme.colors.primary }]}
-                  labelStyle={{ color: theme.colors.onPrimary, fontSize: 36, fontWeight: 'bold' }}
-                />
-              </View>
-              
-              <View style={styles.profileInfo}>
-                <Text variant="headlineSmall" style={[styles.name, { color: theme.colors.onSurface }]}>
+            <Card.Content style={styles.profileContentRow}>
+              <Avatar.Text 
+                size={72} 
+                label={getUserInitials()}
+                style={[styles.avatar, { backgroundColor: theme.colors.primary }]}
+                labelStyle={{ color: theme.colors.onPrimary, fontSize: 26, fontWeight: 'bold' }}
+              />
+              <View style={styles.profileInfoCol}>
+                <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700' }}>
                   {getUserDisplayName()}
                 </Text>
-                <Text variant="bodyMedium" style={[styles.email, { color: theme.colors.onSurfaceVariant }]}>
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
                   {user?.email || 'No email'}
                 </Text>
                 {user?.phone && (
                   <View style={styles.phoneContainer}>
                     <Ionicons name="call" size={16} color={theme.colors.primary} />
-                    <Text variant="bodyMedium" style={[styles.phone, { color: theme.colors.onSurfaceVariant }]}>
+                    <Text variant="bodySmall" style={[styles.phone, { color: theme.colors.onSurfaceVariant }]}>
                       {user.phone}
                     </Text>
                   </View>
                 )}
-                <View style={styles.verificationBadge}>
-                  <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
-                  <Text variant="bodySmall" style={[styles.verificationText, { color: theme.colors.primary }]}>
-                    {isAuthenticated ? 'Verified Account' : 'Not Verified'}
-                  </Text>
-                </View>
-              </View>
-            </Card.Content>
-            
-            <Card.Actions style={styles.profileActions}>
-              <Button 
-                mode="contained" 
-                onPress={handleEditProfile}
-                icon="pencil"
-                style={styles.editButton}
-                contentStyle={styles.buttonContent}
-              >
-                Edit Profile
-              </Button>
-              <Button 
-                mode="outlined" 
-                onPress={() => handleMenuPress('Share Profile')}
-                icon="share"
-                style={styles.shareButton}
-                contentStyle={styles.buttonContent}
-              >
-                Share
-              </Button>
-            </Card.Actions>
-          </Card>
-        </View>
-
-        {/* Enhanced Stats Section */}
-        <View style={styles.statsSection}>
-          <Card style={[styles.statsCard, { backgroundColor: theme.colors.surface }]}>
-            <Card.Content style={styles.statsContent}>
-              <View style={styles.statsHeader}>
-                <Text variant="titleMedium" style={[styles.statsTitle, { color: theme.colors.onSurface }]}>
-                  Your Activity
-                </Text>
-                <Text variant="bodySmall" style={[styles.statsSubtitle, { color: theme.colors.onSurfaceVariant }]}>
-                  Last 30 days
-                </Text>
-              </View>
-              
-              <View style={styles.statsGrid}>
-                <View style={styles.statItem}>
-                  <View style={[styles.statIconContainer, { backgroundColor: theme.colors.primaryContainer }]}>
-                    <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
-                  </View>
-                  <Text variant="headlineMedium" style={[styles.statNumber, { color: theme.colors.primary }]}>
-                    12
-                  </Text>
-                  <Text variant="bodyMedium" style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Services Used
-                  </Text>
-                </View>
-                
-                <View style={styles.statItem}>
-                  <View style={[styles.statIconContainer, { backgroundColor: theme.colors.secondaryContainer }]}>
-                    <Ionicons name="star" size={24} color={theme.colors.secondary} />
-                  </View>
-                  <Text variant="headlineMedium" style={[styles.statNumber, { color: theme.colors.secondary }]}>
-                    4.9
-                  </Text>
-                  <Text variant="bodyMedium" style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Rating
-                  </Text>
-                </View>
-                
-                <View style={styles.statItem}>
-                  <View style={[styles.statIconContainer, { backgroundColor: theme.colors.tertiaryContainer }]}>
-                    <Ionicons name="chatbubble" size={24} color={theme.colors.tertiary} />
-                  </View>
-                  <Text variant="headlineMedium" style={[styles.statNumber, { color: theme.colors.tertiary }]}>
-                    8
-                  </Text>
-                  <Text variant="bodyMedium" style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Reviews
-                  </Text>
-                </View>
-                
-                <View style={styles.statItem}>
-                  <View style={[styles.statIconContainer, { backgroundColor: theme.colors.errorContainer }]}>
-                    <Ionicons name="heart" size={24} color={theme.colors.error} />
-                  </View>
-                  <Text variant="headlineMedium" style={[styles.statNumber, { color: theme.colors.error }]}>
-                    5
-                  </Text>
-                  <Text variant="bodyMedium" style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>
-                    Favorites
-                  </Text>
-                </View>
+                {/* Edit profile button removed */}
               </View>
             </Card.Content>
           </Card>
         </View>
 
-        {/* Enhanced Menu Section */}
-        <View style={styles.menuSection}>
-          <Card style={[styles.menuCard, { backgroundColor: theme.colors.surface }]}>
-            <Card.Content style={styles.menuContent}>
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => handleMenuPress('Settings')}
-              >
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.menuIconContainer, { backgroundColor: theme.colors.primaryContainer }]}>
-                    <Ionicons name="settings" size={20} color={theme.colors.primary} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text variant="bodyLarge" style={[styles.menuText, { color: theme.colors.onSurface }]}>
-                      Settings
-                    </Text>
-                    <Text variant="bodySmall" style={[styles.menuSubtext, { color: theme.colors.onSurfaceVariant }]}>
-                      App preferences & account settings
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={theme.colors.onSurfaceVariant} />
-              </TouchableOpacity>
-              
-              <Divider style={styles.menuDivider} />
-              
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => handleMenuPress('Service History')}
-              >
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.menuIconContainer, { backgroundColor: theme.colors.secondaryContainer }]}>
-                    <Ionicons name="time" size={20} color={theme.colors.secondary} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text variant="bodyLarge" style={[styles.menuText, { color: theme.colors.onSurface }]}>
-                      Service History
-                    </Text>
-                    <Text variant="bodySmall" style={[styles.menuSubtext, { color: theme.colors.onSurfaceVariant }]}>
-                      View past bookings & services
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.menuItemRight}>
-                  <Badge size={20} style={styles.badge}>3</Badge>
-                  <Ionicons name="chevron-forward" size={20} color={theme.colors.onSurfaceVariant} />
-                </View>
-              </TouchableOpacity>
-              
-              <Divider style={styles.menuDivider} />
-              
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => handleMenuPress('Favorites')}
-              >
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.menuIconContainer, { backgroundColor: theme.colors.errorContainer }]}>
-                    <Ionicons name="heart" size={20} color={theme.colors.error} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text variant="bodyLarge" style={[styles.menuText, { color: theme.colors.onSurface }]}>
-                      Favorites
-                    </Text>
-                    <Text variant="bodySmall" style={[styles.menuSubtext, { color: theme.colors.onSurfaceVariant }]}>
-                      Your saved services
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={theme.colors.onSurfaceVariant} />
-              </TouchableOpacity>
-              
-              <Divider style={styles.menuDivider} />
-              
-              <TouchableOpacity 
-                style={styles.menuItem}
-                onPress={() => handleMenuPress('Help & Support')}
-              >
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.menuIconContainer, { backgroundColor: theme.colors.tertiaryContainer }]}>
-                    <Ionicons name="help-circle" size={20} color={theme.colors.tertiary} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Text variant="bodyLarge" style={[styles.menuText, { color: theme.colors.onSurface }]}>
-                      Help & Support
-                    </Text>
-                    <Text variant="bodySmall" style={[styles.menuSubtext, { color: theme.colors.onSurfaceVariant }]}>
-                      Get help & contact support
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={theme.colors.onSurfaceVariant} />
-              </TouchableOpacity>
+        {/* Stats section removed */}
+
+        {/* Menu section removed */}
+
+        {/* Quick Actions Grid */}
+        <View style={styles.sectionContainer}>
+          <Card style={[styles.sectionCard, { backgroundColor: theme.colors.surface }]}>
+            <Card.Content>
+              <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 8 }}>Quick actions</Text>
+              <View style={styles.grid}>
+                <TouchableOpacity style={[styles.gridItem, { backgroundColor: theme.colors.primaryContainer }]} onPress={handleEditProfile}>
+                  <Ionicons name="person" size={20} color={theme.colors.primary} />
+                  <Text variant="bodyMedium" style={[styles.gridLabel, { color: theme.colors.onPrimaryContainer }]}>Edit profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.gridItem, { backgroundColor: theme.colors.secondaryContainer }]} onPress={() => navigation.navigate('Orders' as any)}>
+                  <Ionicons name="receipt" size={20} color={theme.colors.secondary} />
+                  <Text variant="bodyMedium" style={[styles.gridLabel, { color: theme.colors.onSecondaryContainer }]}>My orders</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.gridItem, { backgroundColor: theme.colors.tertiaryContainer }]} onPress={handleChangePassword}>
+                  <Ionicons name="lock-closed" size={20} color={theme.colors.tertiary} />
+                  <Text variant="bodyMedium" style={[styles.gridLabel, { color: theme.colors.onTertiaryContainer }]}>Change Password</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.gridItem, { backgroundColor: theme.colors.primaryContainer }]} onPress={handleRateApp}>
+                  <Ionicons name="thumbs-up" size={20} color={theme.colors.primary} />
+                  <Text variant="bodyMedium" style={[styles.gridLabel, { color: theme.colors.onPrimaryContainer }]}>Rate app</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.gridItem, { backgroundColor: theme.colors.secondaryContainer }]} onPress={() => navigation.navigate('Services' as any)}>
+                  <Ionicons name="briefcase" size={20} color={theme.colors.secondary} />
+                  <Text variant="bodyMedium" style={[styles.gridLabel, { color: theme.colors.onSecondaryContainer }]}>Browse</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.gridItem, { backgroundColor: theme.colors.errorContainer }]} onPress={handleDeleteAccount}>
+                  <Ionicons name="trash" size={20} color={theme.colors.error} />
+                  <Text variant="bodyMedium" style={[styles.gridLabel, { color: theme.colors.onErrorContainer }]}>Delete Account</Text>
+                </TouchableOpacity>
+              </View>
             </Card.Content>
           </Card>
         </View>
 
-        {/* Enhanced Logout Section */}
+        {/* Account Actions removed */}
+
+        {/* Logout Section */}
         <View style={styles.logoutSection}>
           <Card style={[styles.logoutCard, { backgroundColor: theme.colors.errorContainer }]}>
             <Card.Content style={styles.logoutContent}>
@@ -356,7 +369,71 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           </Card>
         </View>
       </ScrollView>
-    </View>
+
+      {/* Change Password Modal */}
+      <Portal>
+        <Modal
+          visible={changePasswordModalVisible}
+          onDismiss={handleCancelChangePassword}
+        >
+          <View style={[styles.modalContainer, styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+            <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
+              Change Password
+            </Text>
+            
+            <TextInput
+              label="Current Password"
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              secureTextEntry
+              mode="outlined"
+              style={styles.input}
+              theme={{ colors: { primary: theme.colors.primary } }}
+            />
+            
+            <TextInput
+              label="New Password"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+              mode="outlined"
+              style={styles.input}
+              theme={{ colors: { primary: theme.colors.primary } }}
+            />
+            
+            <TextInput
+              label="Confirm New Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              mode="outlined"
+              style={styles.input}
+              theme={{ colors: { primary: theme.colors.primary } }}
+            />
+            
+            <View style={styles.modalButtons}>
+              <Button
+                mode="outlined"
+                onPress={handleCancelChangePassword}
+                style={styles.modalButton}
+                disabled={changingPassword}
+              >
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleChangePasswordSubmit}
+                style={styles.modalButton}
+                loading={changingPassword}
+                disabled={changingPassword}
+              >
+                {changingPassword ? 'Changing...' : 'Change Password'}
+              </Button>
+            </View>
+          </View>
+        </Modal>
+      </Portal>
+    </SafeAreaView>
   );
 };
 
@@ -365,38 +442,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-  headerGradient: {
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerTitle: {
-    color: 'white',
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontSize: 14,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerIcon: {
-    marginLeft: 8,
-  },
   scrollContainer: {
     flex: 1,
-    marginTop: -20,
+    marginTop: 0,
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
   profileSection: {
     paddingHorizontal: 20,
@@ -413,25 +464,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
   },
-  profileContent: {
+  profileContentRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 30,
+    gap: 16,
+    paddingVertical: 20,
   },
   avatarContainer: {
     position: 'relative',
     marginBottom: 20,
   },
   avatar: {
-    borderWidth: 4,
-    borderColor: 'white',
-    elevation: 4,
+    elevation: 2,
     shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
   },
   editAvatarButton: {
     position: 'absolute',
@@ -452,8 +500,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  profileInfo: {
-    alignItems: 'center',
+  profileInfoCol: {
+    flex: 1,
   },
   name: {
     fontWeight: '700',
@@ -619,6 +667,46 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 32,
   },
+  sectionContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  sectionCard: {
+    borderRadius: 16,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  gridItem: {
+    width: '47%',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 6,
+  },
+  gridLabel: {
+    textAlign: 'center',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  actionBtn: {
+    flex: 1,
+    borderRadius: 10,
+  },
+  deleteBtn: {
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  versionText: {
+    textAlign: 'center',
+    marginTop: 4,
+  },
   logoutCard: {
     borderRadius: 20,
     elevation: 8,
@@ -646,6 +734,36 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     borderRadius: 12,
+  },
+  modalContainer: {
+    margin: 20,
+    borderRadius: 16,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  modalContent: {
+    padding: 24,
+  },
+  modalTitle: {
+    textAlign: 'center',
+    marginBottom: 24,
+    fontWeight: '600',
+  },
+  input: {
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    borderRadius: 8,
   },
 });
 

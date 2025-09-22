@@ -34,8 +34,8 @@ export interface UpdateProfileData {
 }
 
 export interface ChangePasswordData {
-  current_password: string;
-  new_password: string;
+  currentPassword: string;
+  newPassword: string;
 }
 
 // Profile API
@@ -74,7 +74,7 @@ export const profileAPI = {
   // Change password
   async changePassword(passwordData: ChangePasswordData): Promise<{success: boolean, message?: string, error?: string}> {
     try {
-      const response = await httpClient.put<{success: boolean, message: string}>('/profile/password', passwordData);
+      const response = await httpClient.put<{success: boolean, message: string}>('/mobile-auth/change-password', passwordData);
       
       return response;
     } catch (error: any) {
