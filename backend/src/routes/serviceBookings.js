@@ -472,8 +472,15 @@ router.delete('/:id', verifyToken, async (req, res) => {
       .select(`
         *,
         services (
-          name,
-          price
+          id,
+          title,
+          category
+        ),
+        service_variants (
+          id,
+          title,
+          price,
+          duration
         )
       `)
       .eq('id', req.params.id)
@@ -500,12 +507,24 @@ router.delete('/:id', verifyToken, async (req, res) => {
       .from('service_bookings')
       .update({
         status: 'cancelled',
-        cancellation_reason: reason || 'Cancelled by user',
         updated_at: new Date().toISOString()
       })
       .eq('id', req.params.id)
       .eq('user_id', req.user.id)
-      .select()
+      .select(`
+        *,
+        services (
+          id,
+          title,
+          category
+        ),
+        service_variants (
+          id,
+          title,
+          price,
+          duration
+        )
+      `)
       .single();
 
     if (updateError) {
@@ -528,12 +547,12 @@ router.delete('/:id', verifyToken, async (req, res) => {
           customerPhone: req.user.phone || 'Not provided',
           orderId: `BOOKING-${booking.id}`,
           orderDate: new Date(existingBooking.created_at).toLocaleDateString(),
-          serviceDate: new Date(existingBooking.service_date).toLocaleDateString(),
+          serviceDate: new Date(existingBooking.service_date || existingBooking.booking_date).toLocaleDateString(),
           serviceTime: existingBooking.service_time || 'Not specified',
-          totalAmount: existingBooking.total_amount || 0,
+          totalAmount: existingBooking.total_amount || existingBooking.service_variants?.price || 0,
           services: [{
-            name: existingBooking.services?.name || 'Service Booking',
-            price: `€${existingBooking.services?.price || existingBooking.total_amount || 0}`
+            name: existingBooking.services?.title || existingBooking.service_variants?.title || 'Service Booking',
+            price: `€${existingBooking.total_amount || existingBooking.service_variants?.price || 0}`
           }],
           address: existingBooking.service_address || {
             street_address: 'Not provided',

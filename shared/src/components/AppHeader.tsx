@@ -1,21 +1,30 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 
-const AppHeader: React.FC = () => {
+interface Props { title?: string }
+
+const AppHeader: React.FC<Props> = ({ title }) => {
   const theme = useTheme();
 
   return (
     <View style={[styles.customHeader, { backgroundColor: theme.colors.surface }]}>
-      {/* Simple clean header - no logo, cart, or back button */}
+      {title ? (
+        <Text variant="titleLarge" style={{ color: theme.colors.onSurface }}>
+          {title}
+        </Text>
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   customHeader: {
-    height: 0, // Minimal height since we're removing all content
+    height: 56,
     borderBottomWidth: 0,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    flexDirection: 'row',
   },
 });
 
