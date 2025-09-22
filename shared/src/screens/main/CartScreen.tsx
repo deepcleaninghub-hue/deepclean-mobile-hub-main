@@ -2,6 +2,8 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { Text, Card, Button, Chip, Divider, useTheme, IconButton, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import AppHeader from '../../components/AppHeader';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { CartStackScreenProps } from '../../navigation/types';
@@ -35,7 +37,8 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
 
   if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
+        <AppHeader title="Cart" />
         <View style={styles.emptyContainer}>
           <Ionicons name="cart-outline" size={80} color={theme.colors.outline} />
           <Text variant="headlineSmall" style={styles.emptyTitle}>
@@ -45,13 +48,14 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
             You need to be logged in to view your cart
           </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (cartItems.length === 0) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
+        <AppHeader title="Cart" />
         <View style={styles.emptyContainer}>
           <Ionicons name="cart-outline" size={80} color={theme.colors.outline} />
           <Text variant="headlineSmall" style={styles.emptyTitle}>
@@ -61,21 +65,13 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
             Add some services to get started
           </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-        <Text variant="headlineMedium" style={[styles.headerTitle, { color: theme.colors.onSurface }]}>
-          Shopping Cart
-        </Text>
-        <Text variant="bodyMedium" style={[styles.itemCount, { color: theme.colors.onSurfaceVariant }]}>
-          {cartItems.length} items
-        </Text>
-      </View>
+    <SafeAreaView style={styles.container}>
+      <AppHeader title="Cart" />
 
       <ScrollView 
         style={styles.scrollContainer}
@@ -198,7 +194,7 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
           </Button>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

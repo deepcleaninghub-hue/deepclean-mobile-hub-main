@@ -118,7 +118,7 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader />
+      <AppHeader title="My Orders" />
       <ScrollView 
         style={styles.scrollView}
         refreshControl={

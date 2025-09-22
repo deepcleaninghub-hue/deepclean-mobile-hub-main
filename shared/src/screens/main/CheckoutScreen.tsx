@@ -272,7 +272,7 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
           <Button
             mode="contained"
-            onPress={() => navigation.navigate('Home' as any)}
+            onPress={() => navigation.navigate('Services' as any)}
             style={styles.continueButton}
           >
             Continue Shopping
