@@ -284,7 +284,7 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader />
+      <AppHeader title="Checkout" showBack />
       
       <ScrollView 
         style={styles.scrollView}

@@ -8,6 +8,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MainTabParamList, ServicesStackParamList, CartStackParamList, OrdersStackParamList, ProfileStackParamList } from './types';
 import { theme } from '../utils/theme';
@@ -71,6 +72,7 @@ const ProfileStack = () => {
 };
 
 export const AppNavigator: React.FC = () => {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -101,9 +103,9 @@ export const AppNavigator: React.FC = () => {
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.outline,
-          paddingBottom: 5,
+          paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 5,
-          height: 60,
+          height: 60 + Math.max(insets.bottom, 8),
         },
         headerStyle: {
           backgroundColor: theme.colors.surface,

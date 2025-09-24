@@ -196,7 +196,13 @@ const OrderHistoryScreen: React.FC<Props> = ({ navigation }) => {
                       mode="outlined"
                       textStyle={{ color: getStatusColor(booking.status) }}
                       style={{ borderColor: getStatusColor(booking.status) }}
-                      icon={getStatusIcon(booking.status)}
+                      icon={(props) => (
+                        <Ionicons
+                          name={getStatusIcon(booking.status) as any}
+                          size={props.size}
+                          color={getStatusColor(booking.status)}
+                        />
+                      )}
                     >
                       {booking.status.replace('_', ' ').toUpperCase()}
                     </Chip>

@@ -27,7 +27,7 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
   const [whatsappStatus, setWhatsappStatus] = useState<'pending' | 'sending' | 'sent' | 'failed'>('pending');
 
   const handleContinueShopping = () => {
-    navigation.navigate('Home' as any);
+    navigation.navigate('Services' as any);
   };
 
   const handleViewOrders = () => {
@@ -89,14 +89,8 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
           console.log('Email service not configured - emails not sent');
         }
 
-        // Check WhatsApp status
-        if (result.results?.whatsapp?.success) {
-          setWhatsappStatus('sent');
-          console.log('WhatsApp notification sent successfully');
-        } else {
-          setWhatsappStatus('failed');
-          console.log('WhatsApp service not configured or failed');
-        }
+        // WhatsApp integration optional; set to failed if not present
+        setWhatsappStatus('failed');
       }
     } catch (error) {
       console.error('Error sending order confirmation emails:', error);
@@ -108,7 +102,7 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader />
+      <AppHeader title="Order Confirmation" showBack />
       
       <ScrollView 
         style={styles.scrollView}

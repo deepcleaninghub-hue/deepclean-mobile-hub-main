@@ -177,11 +177,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                     : `€${(price || 0).toFixed(2)}`
                   }
                 </Text>
-                {pricing_type === 'per_unit' && (
-                  <Text variant="bodySmall" style={[styles.unitPrice, { color: theme.colors.onSurfaceVariant }]}>
-                    Per {unit_measure}
-                  </Text>
-                )}
               </View>
               {duration && (
                 <Text variant="bodySmall" style={[styles.duration, { color: theme.colors.onSurfaceVariant }]}>

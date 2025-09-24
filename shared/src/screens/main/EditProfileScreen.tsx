@@ -220,7 +220,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader />
+      <AppHeader title="Edit Profile" showBack/>
       
       <ScrollView 
         style={styles.scrollView} 
