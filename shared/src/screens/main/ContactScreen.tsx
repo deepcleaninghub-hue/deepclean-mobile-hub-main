@@ -15,6 +15,7 @@ import AppHeader from '../../components/AppHeader';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { inquiriesAPI, InquiryData } from '../../services/inquiriesAPI';
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -23,7 +24,13 @@ const contactSchema = z.object({
   service: z.string().min(1, 'Please select a service'),
   message: z.string().min(10, 'Message must be at least 10 characters'),
   serviceArea: z.string().optional(),
-  preferredDate: z.string().optional(),
+  preferredDate: z.string().optional().refine((date) => {
+    if (!date || date.trim() === '') return true; // Allow empty dates
+    const parsedDate = new Date(date);
+    return !isNaN(parsedDate.getTime()) && parsedDate.toISOString() === date;
+  }, {
+    message: 'Please enter a valid date in YYYY-MM-DD format'
+  }),
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
@@ -73,20 +80,38 @@ const ContactScreen = () => {
         return;
       }
 
-      // For now, simulate API call since we don't have inquiriesAPI in shared
-      // In a real implementation, you would call the actual API
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Prepare inquiry data for API
+      const inquiryData: InquiryData = {
+        customerName: data.name,
+        customerEmail: data.email,
+        customerPhone: data.phone,
+        services: [{
+          id: selectedService.id,
+          name: selectedService.name,
+          price: selectedService.price
+        }],
+        message: data.message,
+        preferredDate: data.preferredDate && data.preferredDate.trim() !== '' ? data.preferredDate : undefined,
+        serviceArea: data.serviceArea || ''
+      };
+
+      // Submit inquiry to API
+      const response = await inquiriesAPI.submitInquiry(inquiryData);
       
-      Alert.alert(
-        'Success!',
-        'Thank you for your inquiry. We will get back to you within 24 hours.',
-        [
-          {
-            text: 'OK',
-            onPress: () => reset(),
-          },
-        ]
-      );
+      if (response.success) {
+        Alert.alert(
+          'Success!',
+          'Thank you for your inquiry. We will get back to you within 24 hours.',
+          [
+            {
+              text: 'OK',
+              onPress: () => reset(),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', response.error || 'Failed to submit inquiry. Please try again.');
+      }
     } catch (error) {
       console.error('Error submitting inquiry:', error);
       Alert.alert('Error', 'Failed to submit inquiry. Please check your connection and try again.');
@@ -115,7 +140,7 @@ const ContactScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader />
+      <AppHeader title="Contact Us" showBack />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
@@ -298,7 +323,8 @@ const ContactScreen = () => {
                     mode="outlined"
                     style={styles.input}
                     left={<TextInput.Icon icon="calendar" />}
-                    placeholder="e.g., 2024-01-15"
+                    placeholder="YYYY-MM-DD (e.g., 2024-01-15)"
+                    keyboardType="numeric"
                   />
                 )}
               />
@@ -316,81 +342,103 @@ const ContactScreen = () => {
             </Card.Content>
           </Card>
 
-          {/* Contact Information */}
-          <Card style={[styles.infoCard, { backgroundColor: theme.colors.primaryContainer }]}>
-            <Card.Content style={styles.infoContent}>
-              <Text variant="titleLarge" style={[styles.infoTitle, { color: theme.colors.onPrimary }]}>
-                Contact Information
+          {/* Contact Information CTA */}
+          <Card style={[styles.ctaCard, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <Card.Content style={styles.ctaContent}>
+              <View style={styles.ctaBadgeRow}>
+                <View style={[styles.ctaIconCircle, { backgroundColor: theme.colors.primary }]}>
+                  <Ionicons name="call" size={16} color={theme.colors.onPrimary} />
+                </View>
+                <Text style={[styles.ctaBadge, { color: theme.colors.primary }]}>Get in touch, instantly</Text>
+              </View>
+              <Text variant="titleLarge" style={[styles.ctaTitle, { color: theme.colors.onSurface }]}>
+                Prefer to talk directly?
+              </Text>
+              <Text variant="bodyMedium" style={[styles.ctaDescription, { color: theme.colors.onSurfaceVariant }]}>
+                Call, email, or message us for immediate assistance and personalized service.
               </Text>
               
-              <View style={styles.contactItem}>
-                <Ionicons name="call" size={24} color={theme.colors.onPrimary} />
-                <View style={styles.contactText}>
-                  <Text variant="titleMedium" style={{ color: theme.colors.onPrimary, fontWeight: '600' }}>
-                    Phone
-                  </Text>
-                  <Text variant="bodyMedium" style={{ color: theme.colors.onPrimary }}>
-                    +49-16097044182
-                  </Text>
+              <View style={styles.contactMethods}>
+                <View style={styles.contactMethod}>
+                  <View style={[styles.contactIconContainer, { backgroundColor: theme.colors.primary }]}>
+                    <Ionicons name="call" size={20} color={theme.colors.onPrimary} />
+                  </View>
+                  <View style={styles.contactMethodText}>
+                    <Text variant="titleMedium" style={[styles.contactMethodTitle, { color: theme.colors.onSurface }]}>
+                      Call Us
+                    </Text>
+                    <Text variant="bodySmall" style={[styles.contactMethodSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+                      +49-16097044182
+                    </Text>
+                  </View>
+                  <Button
+                    mode="outlined"
+                    onPress={handleCallNow}
+                    style={[styles.contactActionButton, { borderColor: theme.colors.primary }]}
+                    textColor={theme.colors.primary}
+                    contentStyle={styles.contactButtonContent}
+                    icon={({ size, color }) => (
+                      <Ionicons name="call" size={size} color={color} />
+                    )}
+                    compact
+                  >
+                    Call
+                  </Button>
                 </View>
-                <Button
-                  mode="contained"
-                  onPress={handleCallNow}
-                  style={[styles.actionButton, { backgroundColor: theme.colors.onPrimary }]}
-                  contentStyle={styles.buttonContent}
-                  textColor={theme.colors.primary}
-                  compact
-                >
-                  Call Now
-                </Button>
-              </View>
 
-              <Divider style={[styles.divider, { backgroundColor: theme.colors.onPrimary }]} />
-
-              <View style={styles.contactItem}>
-                <Ionicons name="mail" size={24} color={theme.colors.onPrimary} />
-                <View style={styles.contactText}>
-                  <Text variant="titleMedium" style={{ color: theme.colors.onPrimary, fontWeight: '600' }}>
+                <View style={styles.contactMethod}>
+                  <View style={[styles.contactIconContainer, { backgroundColor: theme.colors.primary }]}>
+                    <Ionicons name="mail" size={20} color={theme.colors.onPrimary} />
+                  </View>
+                  <View style={styles.contactMethodText}>
+                    <Text variant="titleMedium" style={[styles.contactMethodTitle, { color: theme.colors.onSurface }]}>
+                      Email Us
+                    </Text>
+                    <Text variant="bodySmall" style={[styles.contactMethodSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+                      info@deepcleaninghub.com
+                    </Text>
+                  </View>
+                  <Button
+                    mode="outlined"
+                    onPress={handleEmailUs}
+                    style={[styles.contactActionButton, { borderColor: theme.colors.primary }]}
+                    textColor={theme.colors.primary}
+                    contentStyle={styles.contactButtonContent}
+                    icon={({ size, color }) => (
+                      <Ionicons name="mail" size={size} color={color} />
+                    )}
+                    compact
+                  >
                     Email
-                  </Text>
-                  <Text variant="bodyMedium" style={{ color: theme.colors.onPrimary }}>
-                    info@deepcleaninghub.com
-                  </Text>
+                  </Button>
                 </View>
-                <Button
-                  mode="contained"
-                  onPress={handleEmailUs}
-                  style={[styles.actionButton, { backgroundColor: theme.colors.onPrimary }]}
-                  contentStyle={styles.buttonContent}
-                  textColor={theme.colors.primary}
-                  compact
-                >
-                  Email
-                </Button>
-              </View>
 
-              <Divider style={[styles.divider, { backgroundColor: theme.colors.onPrimary }]} />
-
-              <View style={styles.contactItem}>
-                <Ionicons name="logo-whatsapp" size={24} color={theme.colors.onPrimary} />
-                <View style={styles.contactText}>
-                  <Text variant="titleMedium" style={{ color: theme.colors.onPrimary, fontWeight: '600' }}>
-                    WhatsApp
-                  </Text>
-                  <Text variant="bodyMedium" style={{ color: theme.colors.onPrimary }}>
-                    Quick messaging
-                  </Text>
+                <View style={styles.contactMethod}>
+                  <View style={[styles.contactIconContainer, { backgroundColor: '#25D366' }]}>
+                    <Ionicons name="logo-whatsapp" size={20} color="white" />
+                  </View>
+                  <View style={styles.contactMethodText}>
+                    <Text variant="titleMedium" style={[styles.contactMethodTitle, { color: theme.colors.onSurface }]}>
+                      WhatsApp
+                    </Text>
+                    <Text variant="bodySmall" style={[styles.contactMethodSubtitle, { color: theme.colors.onSurfaceVariant }]}>
+                      Quick messaging
+                    </Text>
+                  </View>
+                  <Button
+                    mode="outlined"
+                    onPress={handleWhatsApp}
+                    style={[styles.contactActionButton, { borderColor: '#25D366' }]}
+                    textColor="#25D366"
+                    contentStyle={styles.contactButtonContent}
+                    icon={({ size, color }) => (
+                      <Ionicons name="logo-whatsapp" size={size} color={color} />
+                    )}
+                    compact
+                  >
+                    Message
+                  </Button>
                 </View>
-                <Button
-                  mode="contained"
-                  onPress={handleWhatsApp}
-                  style={[styles.actionButton, { backgroundColor: theme.colors.onPrimary }]}
-                  contentStyle={styles.buttonContent}
-                  textColor={theme.colors.primary}
-                  compact
-                >
-                  WhatsApp
-                </Button>
               </View>
             </Card.Content>
           </Card>
@@ -453,33 +501,90 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
   },
-  infoCard: {
-    margin: 20,
+  ctaCard: {
+    marginHorizontal: 20,
+    marginVertical: 12,
     borderRadius: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  infoContent: {
+  ctaContent: {
     padding: 24,
   },
-  infoTitle: {
-    textAlign: 'center',
-    marginBottom: 24,
-    fontWeight: 'bold',
-  },
-  contactItem: {
+  ctaBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    gap: 8,
+    marginBottom: 12,
+    justifyContent: 'center',
   },
-  contactText: {
+  ctaIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaBadge: {
+    fontWeight: '700',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  ctaTitle: {
+    textAlign: 'center',
+    marginBottom: 8,
+    fontWeight: '700',
+    fontSize: 20,
+  },
+  ctaDescription: {
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    fontSize: 14,
+  },
+  contactMethods: {
+    gap: 16,
+  },
+  contactMethod: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  contactIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  contactMethodText: {
     flex: 1,
-    marginLeft: 16,
   },
-  actionButton: {
-    borderRadius: 6,
+  contactMethodTitle: {
+    fontWeight: '600',
+    fontSize: 16,
+    marginBottom: 2,
   },
-  divider: {
-    marginVertical: 16,
-    opacity: 0.3,
+  contactMethodSubtitle: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  contactActionButton: {
+    borderRadius: 8,
+    borderWidth: 1.5,
+  },
+  contactButtonContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
 });
 

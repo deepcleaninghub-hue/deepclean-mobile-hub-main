@@ -76,15 +76,6 @@ export const ServiceContent: React.FC<ServiceContentProps> = ({
             >
               {getDisplayPrice()}
             </Text>
-            {getPricingSubtext() && (
-              <Text 
-                variant="bodySmall" 
-                style={[styles.pricingSubtext, { color: theme.colors.onSurfaceVariant }]}
-                testID={`${testID}-pricing-subtext`}
-              >
-                {getPricingSubtext()}
-              </Text>
-            )}
           </View>
           {service.duration && (
             <Text 

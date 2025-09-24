@@ -121,6 +121,9 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
       <AppHeader title="My Orders" />
       <ScrollView 
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        alwaysBounceVertical
+        overScrollMode="always"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -195,7 +198,13 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
                       mode="outlined"
                       textStyle={{ color: getStatusColor(booking.status) }}
                       style={{ borderColor: getStatusColor(booking.status) }}
-                      icon={getStatusIcon(booking.status)}
+                      icon={(props) => (
+                        <Ionicons
+                          name={getStatusIcon(booking.status) as any}
+                          size={props.size}
+                          color={getStatusColor(booking.status)}
+                        />
+                      )}
                     >
                       {booking.status.replace('_', ' ').toUpperCase()}
                     </Chip>
@@ -264,6 +273,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   tabContainer: {
     padding: 16,

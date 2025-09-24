@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, RefreshControl, Platform, Linking, Dimensions, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, Card, Button, Avatar, Divider, useTheme, IconButton, Badge, ActivityIndicator, TextInput, Portal } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../../components/AppHeader';
@@ -13,6 +13,7 @@ type Props = ProfileStackScreenProps<'ProfileMain'>;
 const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const theme = useTheme();
   const { height: screenHeight } = Dimensions.get('window');
+  const insets = useSafeAreaInsets();
   const { user, signOut, isAuthenticated, loading } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -227,16 +228,16 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleRateApp = async () => {
-    try {
-      const iosUrl = 'itms-apps://itunes.apple.com/app/id000000000?action=write-review';
-      const androidUrl = 'market://details?id=com.deepcleanhub.app';
-      const url = Platform.OS === 'ios' ? iosUrl : androidUrl;
-      const fallback = Platform.OS === 'ios'
-        ? 'https://apps.apple.com/app/id000000000'
-        : 'https://play.google.com/store/apps/details?id=com.deepcleanhub.app';
-      const can = await Linking.canOpenURL(url);
-      await Linking.openURL(can ? url : fallback);
-    } catch {}
+    // try {
+    //   const iosUrl = 'itms-apps://itunes.apple.com/app/id000000000?action=write-review';
+    //   const androidUrl = 'market://details?id=com.deepcleanhub.app';
+    //   const url = Platform.OS === 'ios' ? iosUrl : androidUrl;
+    //   const fallback = Platform.OS === 'ios'
+    //     ? 'https://apps.apple.com/app/id000000000'
+    //     : 'https://play.google.com/store/apps/details?id=com.deepcleanhub.app';
+    //   const can = await Linking.canOpenURL(url);
+    //   await Linking.openURL(can ? url : fallback);
+    // } catch {}
   };
 
   const getAppVersion = () => {
@@ -338,7 +339,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.gridItem, { backgroundColor: theme.colors.secondaryContainer }]} onPress={() => navigation.navigate('Services' as any)}>
                   <Ionicons name="briefcase" size={20} color={theme.colors.secondary} />
-                  <Text variant="bodyMedium" style={[styles.gridLabel, { color: theme.colors.onSecondaryContainer }]}>Browse</Text>
+                  <Text variant="bodyMedium" style={[styles.gridLabel, { color: theme.colors.onSecondaryContainer }]}>Browse Services</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.gridItem, { backgroundColor: theme.colors.errorContainer }]} onPress={handleDeleteAccount}>
                   <Ionicons name="trash" size={20} color={theme.colors.error} />
@@ -376,7 +377,15 @@ const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           visible={changePasswordModalVisible}
           onDismiss={handleCancelChangePassword}
         >
-          <View style={[styles.modalContainer, styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+          <View style={[
+            styles.modalContainer,
+            styles.modalContent,
+            { 
+              backgroundColor: theme.colors.surface,
+              marginTop: insets.top + 12,
+              marginBottom: Math.max(insets.bottom, 12)
+            }
+          ]}>
             <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
               Change Password
             </Text>

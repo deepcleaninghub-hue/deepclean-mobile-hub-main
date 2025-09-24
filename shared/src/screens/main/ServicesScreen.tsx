@@ -142,12 +142,12 @@ const ServicesScreen = ({ navigation }: Props) => {
     const categoryMatch = selectedCategory === '' || option.services?.title === selectedCategory;
     
     // Filter by search query
-    const q = debouncedSearch.toLowerCase();
+    const q = (debouncedSearch || '').toLowerCase();
     const searchMatch = q === '' || 
-      option.title.toLowerCase().includes(q) ||
-      option.description.toLowerCase().includes(q) ||
-      option.services?.title.toLowerCase().includes(q) ||
-      option.services?.category.toLowerCase().includes(q);
+      (option.title ? option.title.toLowerCase().includes(q) : false) ||
+      (option.description ? option.description.toLowerCase().includes(q) : false) ||
+      (option.services?.title ? option.services.title.toLowerCase().includes(q) : false) ||
+      (option.services?.category ? option.services.category.toLowerCase().includes(q) : false);
     
     return categoryMatch && searchMatch;
   });
@@ -158,7 +158,9 @@ const ServicesScreen = ({ navigation }: Props) => {
   };
 
   const handleCallNow = () => {
-    Alert.alert('Contact Us', 'Calling +49-16097044182...');
+    Linking.openURL('tel:+4916097044182').catch(() => {
+      Alert.alert('Error', 'Could not open phone app');
+    });
   };
 
   const handleGetInTouch = () => {

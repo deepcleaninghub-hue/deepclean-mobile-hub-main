@@ -93,7 +93,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       case 'pending': return theme.colors.primary;
       case 'confirmed': return '#4CAF50';
       case 'in_progress': return '#FF9800';
-      case 'completed': return '#2196F3';
+      case 'completed': return '#4CAF50';
       case 'cancelled': return theme.colors.error;
       default: return theme.colors.onSurfaceVariant;
     }
@@ -105,7 +105,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       case 'pending': return 'time-outline';
       case 'confirmed': return 'checkmark-circle-outline';
       case 'in_progress': return 'construct-outline';
-      case 'completed': return 'checkmark-done-outline';
+      case 'completed': return 'checkmark-circle-outline';
       case 'cancelled': return 'close-circle-outline';
       default: return 'help-circle-outline';
     }
@@ -194,11 +194,11 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   }
 
   const canCancel = isBooking ? order.status === 'scheduled' : (order.status === 'pending' || order.status === 'confirmed');
-  const canReschedule = isBooking ? order.status === 'scheduled' : (order.status === 'pending' || order.status === 'confirmed');
+  // Reschedule disabled
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader />
+      <AppHeader showBack title="Order Details" />
       <ScrollView 
         style={styles.scrollView}
         refreshControl={
@@ -216,7 +216,13 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 mode="outlined"
                 textStyle={{ color: getStatusColor(order.status) }}
                 style={{ borderColor: getStatusColor(order.status) }}
-                icon={getStatusIcon(order.status)}
+                icon={(props) => (
+                  <Ionicons
+                    name={getStatusIcon(order.status) as any}
+                    size={props.size}
+                    color={getStatusColor(order.status)}
+                  />
+                )}
               >
                 {order.status.replace('_', ' ').toUpperCase()}
               </Chip>
@@ -434,16 +440,6 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
               textColor={theme.colors.error}
             >
               Cancel Order
-            </Button>
-          )}
-          
-          {canReschedule && (
-            <Button
-              mode="outlined"
-              onPress={handleRescheduleOrder}
-              style={styles.actionButton}
-            >
-              Reschedule
             </Button>
           )}
           
