@@ -152,7 +152,7 @@ export function BookingDetailsScreen({ navigation, route }: any) {
     );
   }
 
-  const canCancel = booking.status === 'scheduled' || booking.status === 'confirmed';
+  const canCancel = booking.status === 'pending' || booking.status === 'confirmed';
   const canComplete = booking.status === 'confirmed';
 
   return (
@@ -239,23 +239,46 @@ export function BookingDetailsScreen({ navigation, route }: any) {
               </Text>
             </View>
             
-            <View style={styles.infoRow}>
-              <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Service Date
-              </Text>
-              <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-                {formatDate(booking.booking_date || booking.date)}
-              </Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
-                Service Time
-              </Text>
-              <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-                {formatTime(booking.booking_time || booking.time)}
-              </Text>
-            </View>
+            {/* Multi-day booking display */}
+            {booking.is_multi_day && booking.allBookingDates ? (
+              <View style={styles.multiDaySection}>
+                <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Service Dates ({booking.totalDays || 1} days)
+                </Text>
+                <View style={styles.multiDayDates}>
+                  {booking.allBookingDates.map((bookingDate, index) => (
+                    <View key={index} style={styles.dateItem}>
+                      <Text variant="bodyMedium" style={[styles.dateText, { color: theme.colors.onSurface }]}>
+                        {formatDate(bookingDate.date)}
+                      </Text>
+                      <Text variant="bodySmall" style={[styles.timeText, { color: theme.colors.onSurfaceVariant }]}>
+                        {formatTime(bookingDate.time)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : (
+              <>
+                <View style={styles.infoRow}>
+                  <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    Service Date
+                  </Text>
+                  <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
+                    {formatDate(booking.booking_date || booking.date)}
+                  </Text>
+                </View>
+                
+                <View style={styles.infoRow}>
+                  <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
+                    Service Time
+                  </Text>
+                  <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
+                    {formatTime(booking.booking_time || booking.time)}
+                  </Text>
+                </View>
+              </>
+            )}
             
             <View style={styles.infoRow}>
               <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
@@ -371,7 +394,7 @@ export function BookingDetailsScreen({ navigation, route }: any) {
             </Button>
           )}
 
-          {booking.status === 'scheduled' && (
+          {booking.status === 'pending' && (
             <Button
               mode="contained"
               onPress={() => handleUpdateStatus('confirmed')}
@@ -466,6 +489,28 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontWeight: '500',
+  },
+  multiDaySection: {
+    marginBottom: 12,
+  },
+  multiDayDates: {
+    marginTop: 8,
+  },
+  dateItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  dateText: {
+    fontWeight: '500',
+  },
+  timeText: {
+    fontSize: 12,
   },
   serviceItem: {
     flexDirection: 'row',

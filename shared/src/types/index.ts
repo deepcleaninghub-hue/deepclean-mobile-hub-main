@@ -11,7 +11,8 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  phone?: string;
+  phone: string; // Made required
+  address: string; // Added required address field
   isActive: boolean;
   emailVerified: boolean;
   lastLogin?: string;
@@ -120,6 +121,18 @@ export interface Booking {
   services: BookingService[];
   createdAt: string;
   updatedAt: string;
+  // Multi-day booking support
+  isMultiDay?: boolean;
+  parentBookingId?: string;
+  bookingDates?: BookingDate[];
+  allBookingDates?: BookingDate[];
+  totalDays?: number;
+}
+
+export interface BookingDate {
+  date: string;
+  time: string;
+  id: string;
 }
 
 export interface BookingService {
@@ -258,7 +271,7 @@ export interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (email: string, password: string, firstName: string, lastName: string, phone?: string) => Promise<boolean>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, phone: string, address: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
   updateUser: (updatedUser: User) => void;
@@ -275,7 +288,7 @@ export interface CartContextType {
   removeFromCart: (cartItemId: string) => Promise<boolean>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<boolean>;
   clearCart: () => Promise<boolean>;
-  refreshCart: () => Promise<void>;
+  refreshCart: (forceRefresh?: boolean) => Promise<void>;
   refreshServiceCategories: () => Promise<void>;
   isServiceInCart: (serviceId: string) => boolean;
 }

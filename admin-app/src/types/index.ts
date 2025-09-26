@@ -35,6 +35,18 @@ export interface Booking {
   date: string;
   time: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  // Multi-day booking support
+  isMultiDay?: boolean;
+  parentBookingId?: string;
+  bookingDates?: BookingDate[];
+  allBookingDates?: BookingDate[];
+  totalDays?: number;
+}
+
+export interface BookingDate {
+  date: string;
+  time: string;
+  bookingId: string;
 }
 
 export interface ServiceVariant { id: string; name: string }
@@ -91,6 +103,10 @@ export interface AdminBooking extends Booking {
   payment_method?: string;
   created_at?: string;
   updated_at?: string;
+  // Multi-day booking database fields
+  booking_dates?: any; // JSONB field
+  is_multi_day?: boolean;
+  parent_booking_id?: string;
   // Related data
   services?: {
     id: string;

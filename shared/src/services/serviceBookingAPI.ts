@@ -23,6 +23,21 @@ export interface ServiceBooking {
   actual_end_time?: string;
   created_at: string;
   updated_at: string;
+  // Multi-day booking support (legacy)
+  is_multi_day?: boolean;
+  parent_booking_id?: string;
+  booking_dates?: any; // JSONB field
+  // New booking group support
+  group_id?: string;
+  is_group_booking?: boolean;
+  // Response data
+  isMultiDay?: boolean;
+  totalDays?: number;
+  allBookingDates?: Array<{
+    date: string;
+    time: string;
+    bookingId: string;
+  }>;
   services?: {
     id: string;
     title: string;
@@ -39,10 +54,48 @@ export interface ServiceBooking {
   };
 }
 
+export interface BookingGroup {
+  id: string;
+  user_id: string;
+  group_name: string;
+  service_id: string;
+  service_variant_id: string;
+  service_title: string;
+  service_variant_title: string;
+  booking_dates: Array<{
+    date: string;
+    time: string;
+    bookingId: string;
+  }>;
+  duration_minutes: number;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  customer_name: string;
+  customer_email: string;
+  customer_phone?: string;
+  service_address: string;
+  special_instructions?: string;
+  total_amount: number;
+  payment_status: 'pending' | 'paid' | 'refunded';
+  payment_method?: string;
+  cancellation_reason?: string;
+  cancelled_at?: string;
+  created_at: string;
+  updated_at: string;
+  // Related bookings
+  service_bookings?: Array<{
+    id: string;
+    booking_date: string;
+    booking_time: string;
+    status: string;
+    total_amount: number;
+  }>;
+}
+
 export interface CreateServiceBookingData {
   service_id: string;
   booking_date: string;
   booking_time: string;
+  booking_dates?: Array<{ date: string; time: string }>;
   duration_minutes: number;
   customer_name: string;
   customer_email: string;
@@ -183,6 +236,61 @@ class ServiceBookingAPI {
       return response.data || [];
     } catch (error) {
       console.error('Error fetching completed bookings:', error);
+      throw error;
+    }
+  }
+
+  // ===== BOOKING GROUP API METHODS =====
+
+  // Get all booking groups for the user
+  async getBookingGroups(): Promise<BookingGroup[]> {
+    try {
+      const response = await httpClient.get<{success: boolean, data: BookingGroup[]}>(`${this.baseUrl}/groups`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching booking groups:', error);
+      throw error;
+    }
+  }
+
+  // Get a specific booking group with all dates
+  async getBookingGroup(groupId: string): Promise<BookingGroup> {
+    try {
+      const response = await httpClient.get<{success: boolean, data: BookingGroup}>(`${this.baseUrl}/groups/${groupId}`);
+      if (!response.success || !response.data) {
+        throw new Error('Failed to fetch booking group');
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching booking group:', error);
+      throw error;
+    }
+  }
+
+  // Update booking group status
+  async updateBookingGroupStatus(groupId: string, status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'): Promise<BookingGroup> {
+    try {
+      const response = await httpClient.put<{success: boolean, data: BookingGroup, message: string}>(`${this.baseUrl}/groups/${groupId}/status`, { status });
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to update booking group status');
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Error updating booking group status:', error);
+      throw error;
+    }
+  }
+
+  // Cancel booking group
+  async cancelBookingGroup(groupId: string, reason?: string): Promise<boolean> {
+    try {
+      const response = await httpClient.delete<{success: boolean, message: string}>(`${this.baseUrl}/groups/${groupId}`, { reason });
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to cancel booking group');
+      }
+      return true;
+    } catch (error) {
+      console.error('Error cancelling booking group:', error);
       throw error;
     }
   }

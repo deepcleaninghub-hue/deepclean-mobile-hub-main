@@ -66,9 +66,12 @@ class WhatsAppService {
       const formattedTo = this.formatPhoneNumber(to);
       const formattedFrom = this.formatPhoneNumber(this.fromNumber);
 
+      // Handle both sandbox and production numbers
+      const fromNumber = this.fromNumber.startsWith('whatsapp:') ? this.fromNumber : `whatsapp:${formattedFrom}`;
+      
       const response = await this.client.messages.create({
         body: message,
-        from: `whatsapp:${formattedFrom}`,
+        from: fromNumber,
         to: `whatsapp:${formattedTo}`
       });
 
@@ -121,8 +124,17 @@ class WhatsAppService {
         specialInstructions
       });
 
+      // Log WhatsApp message content for debugging
+      console.log('📱 WHATSAPP MESSAGE CONTENT:');
+      console.log('📱 To: ' + this.adminNumber);
+      console.log('📱 Message Length: ' + whatsappMessage.length + ' characters');
+      console.log('📱 Message Content:');
+      console.log(whatsappMessage);
+      console.log('📱 --- End of WhatsApp Message ---');
+
       // Send to admin
       const result = await this.sendMessage(this.adminNumber, whatsappMessage);
+      console.log('📱 WhatsApp message sent! Result: ' + JSON.stringify(result));
       return result;
     } catch (error) {
       console.error('❌ Error sending order confirmation WhatsApp:', error);

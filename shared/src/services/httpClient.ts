@@ -5,11 +5,10 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
 // Simple base URL configuration - matches original apps
-const BASE_URL = __DEV__ 
-  ? 'http://192.168.29.65:5001/api'
-  : 'https://api.deepcleanhub.com/api';
+const BASE_URL = 'http://192.168.29.65:5001/api';
 
 interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -18,6 +17,42 @@ interface HttpOptions {
 }
 
 class SimpleHttpClient {
+  private logoutCallback: (() => void) | null = null;
+
+  // Method to set logout callback
+  setLogoutCallback(callback: () => void) {
+    this.logoutCallback = callback;
+  }
+
+  // Method to trigger logout
+  private async triggerLogout() {
+    try {
+      // Clear all stored tokens
+      await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
+      console.log('🔐 User logged out due to session expiration');
+      
+      // Show session expired alert
+      Alert.alert(
+        'Session Expired',
+        'Your session has expired. Please log in again.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Trigger the logout callback if set
+              if (this.logoutCallback) {
+                this.logoutCallback();
+              }
+            }
+          }
+        ],
+        { cancelable: false }
+      );
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  }
+
   private async request<T>(endpoint: string, options: HttpOptions = {}): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
     
@@ -55,6 +90,13 @@ class SimpleHttpClient {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('HTTP error response:', errorData);
+        
+        // Handle JWT signature errors by triggering logout
+        if (response.status === 401 && errorData.error && errorData.error.includes('Token verification failed')) {
+          console.log('JWT signature error detected, triggering logout...');
+          await this.triggerLogout();
+        }
+        
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 

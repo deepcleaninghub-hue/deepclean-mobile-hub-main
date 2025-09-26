@@ -261,9 +261,9 @@ export const profileAPI = {
       const response = await httpClient.patch<ApiResponse<User>>('/profile', updates);
       return {
         success: response.success,
-        data: response.data,
-        message: response.message,
-        error: response.error,
+        ...(response.data && { data: response.data }),
+        ...(response.message && { message: response.message }),
+        ...(response.error && { error: response.error }),
       };
     } catch (error) {
       secureLog('error', 'Error updating profile', { error, updates });

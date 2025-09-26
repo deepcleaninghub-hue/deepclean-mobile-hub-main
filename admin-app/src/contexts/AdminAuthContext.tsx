@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { AdminUser, AdminAuthContextType } from '@/types';
 import { adminAuthService } from '@/services/adminAuthService';
+import { httpClient } from '@/services/httpClient';
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
@@ -18,6 +19,14 @@ export function AdminAuthProvider({ children }: AdminAuthProviderProps) {
 
   useEffect(() => {
     checkAuthState();
+  }, []);
+
+  // Set up HTTP client logout callback
+  useEffect(() => {
+    httpClient.setLogoutCallback(() => {
+      setAdmin(null);
+      console.log('Admin logged out due to session expiration');
+    });
   }, []);
 
   const checkAuthState = async () => {

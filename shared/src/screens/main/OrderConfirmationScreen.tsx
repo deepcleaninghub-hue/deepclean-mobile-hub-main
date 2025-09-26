@@ -9,11 +9,12 @@ import {
 import { Text, Card, Button, useTheme, Divider, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Notifications from 'expo-notifications';
 import AppHeader from '../../components/AppHeader';
 import { CartStackScreenProps } from '../../navigation/types';
-import { emailAPI, OrderEmailData } from '../../services/emailAPI';
 import whatsappAPI from '../../services/whatsappAPI';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../hooks/useNotifications';
 
 type Props = CartStackScreenProps<'OrderConfirmation'>;
 
@@ -22,13 +23,15 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
   const { bookingId, orderData } = route.params || {};
   const [refreshing, setRefreshing] = useState(false);
-  const [sendingEmails, setSendingEmails] = useState(false);
-  const [emailsSent, setEmailsSent] = useState(false);
+  const [emailsSent, setEmailsSent] = useState(true); // Emails are sent during booking creation
   const [whatsappStatus, setWhatsappStatus] = useState<'pending' | 'sending' | 'sent' | 'failed'>('pending');
+  const [notificationsScheduled, setNotificationsScheduled] = useState(false);
+  const { scheduleBookingConfirmation, scheduleServiceReminder, isInitialized } = useNotifications();
 
   const handleContinueShopping = () => {
     navigation.navigate('Services' as any);
   };
+
 
   const handleViewOrders = () => {
     navigation.navigate('Orders' as any);
@@ -41,64 +44,49 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
     setRefreshing(false);
   };
 
-  // Send confirmation emails when component mounts
+  // Schedule notifications when order is confirmed (only once)
   useEffect(() => {
-    if (orderData && user && !emailsSent) {
-      sendOrderConfirmationEmails();
-    }
-  }, [orderData, user, emailsSent]);
-
-  const sendOrderConfirmationEmails = async () => {
-    if (!orderData || !user) return;
-
-    setSendingEmails(true);
+    console.log('🚨🚨🚨 NEW NOTIFICATION SYSTEM LOADED! 🚨🚨🚨');
     
-    try {
-      // Prepare email data
-      const emailData: OrderEmailData = {
-        customerName: `${user.firstName} ${user.lastName}`,
-        customerEmail: user.email,
-        customerPhone: user.phone || 'Not provided',
-        orderId: bookingId || 'N/A',
-        orderDate: new Date().toLocaleDateString(),
-        serviceDate: orderData.service_date || 'N/A',
-        serviceTime: orderData.service_time || 'N/A',
-        totalAmount: orderData.total_amount || 0,
-        services: orderData.items?.map((item: any) => ({
-          name: item.service_title || 'Service',
-          price: `€${(item.calculated_price || 0).toFixed(2)}`
-        })) || [],
-        address: {
-          street_address: orderData.address?.street_address || 'N/A',
-          city: orderData.address?.city || 'N/A',
-          postal_code: orderData.address?.postal_code || 'N/A',
-          country: orderData.address?.country || 'N/A'
-        },
-        specialInstructions: orderData.address?.additional_notes
-      };
+    const scheduleNotifications = async () => {
+      console.log('🔍 SIMPLE NOTIFICATION CHECK:', { 
+        hasOrderData: !!orderData, 
+        hasBookingId: !!bookingId, 
+        notificationsScheduled
+      });
 
-      // Send emails
-      const result = await emailAPI.sendOrderConfirmationEmails(emailData);
-      
-      if (result.success) {
-        setEmailsSent(true);
-        // Check if emails were actually sent or just processed
-        if (result.results?.customer?.success || result.results?.admin?.success) {
-          console.log('Order confirmation emails sent successfully');
-        } else {
-          console.log('Email service not configured - emails not sent');
-        }
-
-        // WhatsApp integration optional; set to failed if not present
-        setWhatsappStatus('failed');
+      if (!orderData || !bookingId || notificationsScheduled) {
+        console.log('🚫 SKIPPING - Already scheduled or missing data');
+        return;
       }
-    } catch (error) {
-      console.error('Error sending order confirmation emails:', error);
-      // Don't show error to user as this is not critical
-    } finally {
-      setSendingEmails(false);
-    }
-  };
+
+      console.log('🚀 FORCING NOTIFICATION NOW!');
+      setNotificationsScheduled(true);
+
+      // Wait 2 seconds then force send notification
+      setTimeout(async () => {
+        try {
+          console.log('🔥 SENDING FORCED NOTIFICATION...');
+          const notificationId = await Notifications.scheduleNotificationAsync({
+            content: {
+              title: '✅ BOOKING CONFIRMED!',
+              body: `Your booking is confirmed! Order ID: ${bookingId}`,
+              sound: 'default',
+            },
+            trigger: null,
+          });
+          console.log('🎉 FORCED NOTIFICATION SENT:', notificationId);
+        } catch (error) {
+          console.error('💥 FORCED NOTIFICATION FAILED:', error);
+        }
+      }, 2000);
+
+    };
+
+    scheduleNotifications();
+  }, [orderData, bookingId]);
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -126,14 +114,7 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
             
             {/* Email Status */}
             <View style={styles.emailStatus}>
-              {sendingEmails ? (
-                <View style={styles.emailStatusRow}>
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
-                  <Text variant="bodySmall" style={[styles.emailStatusText, { color: theme.colors.onSurfaceVariant }]}>
-                    Sending confirmation emails...
-                  </Text>
-                </View>
-              ) : emailsSent ? (
+              {emailsSent ? (
                 <View style={styles.emailStatusRow}>
                   <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
                   <Text variant="bodySmall" style={[styles.emailStatusText, { color: theme.colors.primary }]}>
@@ -276,6 +257,7 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
             Continue Shopping
           </Button>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );

@@ -100,7 +100,7 @@ router.post('/', [
 // @desc    Get all inquiries (Admin only)
 // @route   GET /api/inquiries
 // @access  Private/Admin
-router.get('/', [protect, admin], async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { data: inquiries, error } = await supabase
       .from('inquiries')

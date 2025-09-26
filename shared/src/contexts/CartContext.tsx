@@ -85,6 +85,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   };
 
   const refreshCart = useCallback(async (forceRefresh = false) => {
+    console.log('🔄 refreshCart called', { forceRefresh, user: !!user, isAuthenticated });
+    
     if (!user || !isAuthenticated) {
       secureLog('info', 'No user or not authenticated, skipping cart refresh');
       return;

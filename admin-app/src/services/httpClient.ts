@@ -1,11 +1,13 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
-const BASE_URL = 'http://192.168.29.65:5001/api'; // Use network IP for mobile app connectivity
+const BASE_URL = 'http://192.168.29.65:5001/api'; // Use local backend
 
 class HttpClient {
   private client: AxiosInstance;
+  private logoutCallback: (() => void) | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -17,6 +19,40 @@ class HttpClient {
     });
 
     this.setupInterceptors();
+  }
+
+  // Method to set logout callback
+  setLogoutCallback(callback: () => void) {
+    this.logoutCallback = callback;
+  }
+
+  // Method to trigger logout
+  private async triggerLogout() {
+    try {
+      // Clear all stored tokens
+      await AsyncStorage.multiRemove(['admin_token', 'admin_refresh_token', 'admin_user']);
+      console.log('🔐 Admin logged out due to session expiration');
+      
+      // Show session expired alert
+      Alert.alert(
+        'Session Expired',
+        'Your session has expired. Please log in again.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Trigger the logout callback if set
+              if (this.logoutCallback) {
+                this.logoutCallback();
+              }
+            }
+          }
+        ],
+        { cancelable: false }
+      );
+    } catch (error) {
+      console.error('Error during admin logout:', error);
+    }
   }
 
   private setupInterceptors() {
@@ -49,15 +85,19 @@ class HttpClient {
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
-          try {
-            // Clear invalid token and force re-authentication
-            await AsyncStorage.removeItem('admin_token');
-            await AsyncStorage.removeItem('admin_refresh_token');
-            console.log('Authentication failed, please login again');
-          } catch (refreshError) {
-            console.error('Token cleanup failed:', refreshError);
-            await AsyncStorage.removeItem('admin_token');
-            await AsyncStorage.removeItem('admin_refresh_token');
+          // Check if it's a JWT signature error
+          const errorData = error.response?.data as any;
+          if (errorData?.error && errorData.error.includes('Token verification failed')) {
+            console.log('JWT signature error detected, triggering admin logout...');
+            await this.triggerLogout();
+          } else {
+            // Regular 401 - just clear tokens
+            try {
+              await AsyncStorage.multiRemove(['admin_token', 'admin_refresh_token', 'admin_user']);
+              console.log('Authentication failed, please login again');
+            } catch (refreshError) {
+              console.error('Token cleanup failed:', refreshError);
+            }
           }
         }
 

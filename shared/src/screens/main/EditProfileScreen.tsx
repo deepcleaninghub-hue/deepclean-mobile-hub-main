@@ -5,7 +5,9 @@ import {
   StyleSheet,
   Alert,
   RefreshControl,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { 
   Text, 
   Card, 
@@ -35,6 +37,8 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [formData, setFormData] = useState<UpdateProfileData>({});
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   useEffect(() => {
     fetchProfile();
@@ -46,6 +50,8 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       const profileData = await profileAPI.getProfile();
       if (profileData) {
         setProfile(profileData);
+        const dobDate = profileData.date_of_birth ? new Date(profileData.date_of_birth) : new Date();
+        setSelectedDate(dobDate);
         setFormData({
           first_name: profileData.first_name || '',
           last_name: profileData.last_name || '',
@@ -74,7 +80,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const handleInputChange = (field: keyof UpdateProfileData, value: string) => {
+  const handleInputChange = (field: keyof UpdateProfileData, value: string | undefined) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -125,8 +131,48 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       newErrors.postal_code = 'Postal code must be at least 3 characters';
     }
 
+    // Date of birth validation
+    if (formData.date_of_birth && formData.date_of_birth.length > 0) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(formData.date_of_birth)) {
+        newErrors.date_of_birth = 'Please enter a valid date in YYYY-MM-DD format';
+      } else {
+        const selectedDate = new Date(formData.date_of_birth);
+        const today = new Date();
+        const minDate = new Date(1900, 0, 1);
+        
+        if (isNaN(selectedDate.getTime())) {
+          newErrors.date_of_birth = 'Please enter a valid date';
+        } else if (selectedDate > today) {
+          newErrors.date_of_birth = 'Date of birth cannot be in the future';
+        } else if (selectedDate < minDate) {
+          newErrors.date_of_birth = 'Please enter a valid date of birth';
+        }
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Date picker handlers
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    if (selectedDate) {
+      setSelectedDate(selectedDate);
+      const formattedDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      handleInputChange('date_of_birth', formattedDate);
+    }
+  };
+
+  const handleDateConfirm = () => {
+    setShowDatePicker(false);
+  };
+
+  const formatDate = (date: Date): string => {
+    return date.toLocaleDateString('en-CA'); // YYYY-MM-DD format
   };
 
   const handleSave = async () => {
@@ -181,6 +227,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
           lastName: result.data.last_name,
           email: result.data.email,
           phone: result.data.phone || '',
+          address: result.data.address || '',
           isActive: true,
           emailVerified: true,
           createdAt: result.data.created_at,
@@ -299,14 +346,25 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
             />
             {errors.phone && <HelperText type="error">{errors.phone}</HelperText>}
 
-            <TextInput
-              label="Date of Birth"
-              value={formData.date_of_birth || ''}
-              onChangeText={(text) => handleInputChange('date_of_birth', text)}
-              style={styles.input}
-              mode="outlined"
-              placeholder="YYYY-MM-DD"
-            />
+            <View style={styles.dateInputContainer}>
+              <Text variant="bodyMedium" style={[styles.dateLabel, { color: theme.colors.onSurface }]}>
+                Date of Birth
+              </Text>
+              <Button
+                mode="outlined"
+                onPress={() => setShowDatePicker(true)}
+                style={styles.dateButton}
+                contentStyle={styles.dateButtonContent}
+                icon="calendar"
+              >
+                {formData.date_of_birth ? formatDate(selectedDate) : 'Select Date of Birth'}
+              </Button>
+              {errors.date_of_birth && (
+                <HelperText type="error" style={styles.helperText}>
+                  {errors.date_of_birth}
+                </HelperText>
+              )}
+            </View>
 
             <Text variant="bodyMedium" style={[styles.genderLabel, { color: theme.colors.onSurface }]}>
               Gender
@@ -426,6 +484,38 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
           </Card.Content>
         </Card>
       </ScrollView>
+
+      {/* Date Picker */}
+      {showDatePicker && (
+        <View style={styles.pickerContainer}>
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleDateChange}
+            maximumDate={new Date()} // Can't select future dates for DOB
+            minimumDate={new Date(1900, 0, 1)} // Reasonable minimum date
+          />
+          {Platform.OS === 'ios' && (
+            <View style={styles.pickerButtons}>
+              <Button
+                mode="outlined"
+                onPress={() => setShowDatePicker(false)}
+                style={styles.pickerButton}
+              >
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleDateConfirm}
+                style={styles.pickerButton}
+              >
+                Confirm
+              </Button>
+            </View>
+          )}
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -508,6 +598,49 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     paddingVertical: 8,
+  },
+  dateInputContainer: {
+    marginBottom: 8,
+  },
+  dateLabel: {
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  dateButton: {
+    justifyContent: 'flex-start',
+  },
+  dateButtonContent: {
+    justifyContent: 'flex-start',
+  },
+  helperText: {
+    marginTop: 4,
+  },
+  pickerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  pickerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+  },
+  pickerButton: {
+    flex: 1,
+    marginHorizontal: 8,
   },
 });
 

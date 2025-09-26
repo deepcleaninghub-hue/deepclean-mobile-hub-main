@@ -15,6 +15,7 @@ export interface ServiceOption {
     id: string;
     title: string;
     category: string;
+    image_url?: string;
   };
 }
 

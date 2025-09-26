@@ -37,6 +37,7 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
     lastName: '',
     email: '',
     phone: '',
+    address: '',
     password: '',
     confirmPassword: '',
   });
@@ -45,6 +46,7 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
     lastName: '',
     email: '',
     phone: '',
+    address: '',
     password: '',
     confirmPassword: '',
   });
@@ -52,7 +54,7 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateForm = useCallback(() => {
-    const newErrors = { firstName: '', lastName: '', email: '', phone: '', password: '', confirmPassword: '' };
+    const newErrors = { firstName: '', lastName: '', email: '', phone: '', address: '', password: '', confirmPassword: '' };
     let isValid = true;
 
     // First name validation
@@ -78,9 +80,21 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
       isValid = false;
     }
 
-    // Phone validation (optional)
-    if (formData.phone.trim() && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
+    // Phone validation (required)
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+      isValid = false;
+    } else if (!/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
       newErrors.phone = 'Please enter a valid phone number';
+      isValid = false;
+    }
+
+    // Address validation (required)
+    if (!formData.address.trim()) {
+      newErrors.address = 'Address is required';
+      isValid = false;
+    } else if (formData.address.trim().length < 10) {
+      newErrors.address = 'Please enter a complete address';
       isValid = false;
     }
 
@@ -91,7 +105,7 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
     } else {
       const passwordValidation = validatePassword(formData.password);
       if (!passwordValidation.isValid) {
-        newErrors.password = passwordValidation.errors[0];
+        newErrors.password = passwordValidation.errors[0] || 'Invalid password';
         isValid = false;
       }
     }
@@ -125,7 +139,8 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
       formData.password,
       formData.firstName.trim(),
       formData.lastName.trim(),
-      formData.phone.trim() || undefined
+      formData.phone.trim(),
+      formData.address.trim()
     );
     
     if (success) {
@@ -243,7 +258,7 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
               {/* Phone Input */}
               <View style={styles.inputContainer}>
                 <TextInput
-                  label="Phone (Optional)"
+                  label="Phone"
                   value={formData.phone}
                   onChangeText={(text) => handleInputChange('phone', text)}
                   mode="outlined"
@@ -257,6 +272,29 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
                 {errors.phone ? (
                   <Text style={[styles.errorText, { color: theme.colors.error }]}>
                     {errors.phone}
+                  </Text>
+                ) : null}
+              </View>
+
+              {/* Address Input */}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  label="Address"
+                  value={formData.address}
+                  onChangeText={(text) => handleInputChange('address', text)}
+                  mode="outlined"
+                  autoCapitalize="words"
+                  autoComplete="street-address"
+                  multiline
+                  numberOfLines={2}
+                  error={!!errors.address}
+                  left={<TextInput.Icon icon="map-marker" />}
+                  style={styles.input}
+                  testID="address-input"
+                />
+                {errors.address ? (
+                  <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                    {errors.address}
                   </Text>
                 ) : null}
               </View>

@@ -7,6 +7,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  ScrollView,
 } from 'react-native';
 import { Text, Card, Button, useTheme, Portal } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +29,7 @@ interface ServiceCardProps {
   max_measurement?: number;
   measurement_step?: number;
   measurement_placeholder?: string;
+  service_id?: string;
   compact?: boolean;
 }
 
@@ -46,6 +48,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   max_measurement,
   measurement_step,
   measurement_placeholder,
+  service_id,
   compact = false
 }) => {
   const theme = useTheme();
@@ -53,7 +56,17 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const { addToCart, isServiceInCart, loading } = useCart();
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   const [measurement, setMeasurement] = useState('');
+  const [distance, setDistance] = useState('');
   const [calculatedPrice, setCalculatedPrice] = useState(0);
+  
+  // Determine if this is office moving (uses items) or house moving (uses area)
+  const isOfficeMoving = service_id === 'office-moving';
+  const inputLabel = isOfficeMoving ? 'Number of Items' : 'Area (m²)';
+  const inputPlaceholder = isOfficeMoving ? 'Enter number of items' : 'Enter area in m²';
+  const modalTitle = isOfficeMoving ? 'Enter Item Details' : 'Enter Measurement';
+  
+  // Debug logging
+  console.log('ServiceCard Debug:', { service_id, isOfficeMoving, inputLabel });
 
   const handleViewService = () => {
     Alert.alert('Service Details', `Viewing details for ${title}`);
@@ -95,9 +108,38 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
   const handleMeasurementChange = (value: string) => {
     setMeasurement(value);
+    calculatePrice(value, distance);
+  };
+
+  const handleDistanceChange = (value: string) => {
+    setDistance(value);
+    calculatePrice(measurement, value);
+  };
+
+  const calculatePrice = (value: string, dist: string) => {
     const numValue = parseFloat(value);
-    if (!isNaN(numValue) && unit_price) {
-      setCalculatedPrice(numValue * unit_price);
+    const numDistance = parseFloat(dist);
+    
+    console.log('Calculate Price Debug:', { 
+      value, 
+      dist, 
+      numValue, 
+      numDistance, 
+      unit_price, 
+      isOfficeMoving,
+      service_id 
+    });
+    
+    if (!isNaN(numValue) && !isNaN(numDistance) && unit_price) {
+      // Both house moving and office moving use same calculation: (value * rate) + (distance * 0.5) + 19% VAT
+      const labour = numValue * unit_price;
+      const transport = numDistance * 0.5;
+      const subtotal = labour + transport;
+      const tax = subtotal * 0.19;
+      const total = subtotal + tax;
+      
+      console.log('Price Calculation:', { labour, transport, subtotal, tax, total });
+      setCalculatedPrice(total);
     } else {
       setCalculatedPrice(0);
     }
@@ -105,19 +147,25 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
   const handleConfirmMeasurement = async () => {
     const numMeasurement = parseFloat(measurement);
+    const numDistance = parseFloat(distance);
     
     if (isNaN(numMeasurement) || numMeasurement <= 0) {
-      Alert.alert('Invalid Input', 'Please enter a valid measurement');
+      Alert.alert('Invalid Input', `Please enter a valid ${isOfficeMoving ? 'number of items' : 'area'}`);
+      return;
+    }
+
+    if (isNaN(numDistance) || numDistance <= 0) {
+      Alert.alert('Invalid Input', 'Please enter a valid distance');
       return;
     }
 
     if (min_measurement && numMeasurement < min_measurement) {
-      Alert.alert('Invalid Input', `Minimum measurement is ${min_measurement} ${unit_measure}`);
+      Alert.alert('Invalid Input', `Minimum ${isOfficeMoving ? 'items' : 'area'} is ${min_measurement} ${unit_measure}`);
       return;
     }
 
     if (max_measurement && numMeasurement > max_measurement) {
-      Alert.alert('Invalid Input', `Maximum measurement is ${max_measurement} ${unit_measure}`);
+      Alert.alert('Invalid Input', `Maximum ${isOfficeMoving ? 'items' : 'area'} is ${max_measurement} ${unit_measure}`);
       return;
     }
 
@@ -138,15 +186,24 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       updatedAt: new Date().toISOString(),
     };
 
-    const userInputs = {
-      measurement: numMeasurement,
-      unit_measure: unit_measure,
-      unit_price: unit_price
-    };
+    const userInputs = isOfficeMoving 
+      ? {
+          items: numMeasurement,
+          distance: numDistance,
+          unit_measure: unit_measure,
+          unit_price: unit_price
+        }
+      : {
+          area: numMeasurement,
+          distance: numDistance,
+          unit_measure: unit_measure,
+          unit_price: unit_price
+        };
 
     await addToCart(service, calculatedPrice, userInputs);
     setShowMeasurementModal(false);
     setMeasurement('');
+    setDistance('');
     setCalculatedPrice(0);
   };
 
@@ -216,9 +273,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           onDismiss={() => setShowMeasurementModal(false)}
           style={[styles.modal, { backgroundColor: theme.colors.surface }]}
         >
-          <View style={styles.modalContent}>
+          <ScrollView 
+            style={styles.modalScrollView}
+            contentContainerStyle={styles.modalContent}
+            showsVerticalScrollIndicator={false}
+          >
             <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
-              Enter Measurement
+              {modalTitle}
             </Text>
             
             <Text variant="bodyMedium" style={[styles.modalDescription, { color: theme.colors.onSurfaceVariant }]}>
@@ -226,30 +287,60 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             </Text>
 
             <View style={styles.measurementInput}>
+              <Text variant="bodyMedium" style={[styles.inputLabel, { color: theme.colors.onSurface }]}>
+                {inputLabel}
+              </Text>
               <TextInput
                 style={[styles.textInput, { 
                   borderColor: theme.colors.outline,
-                  color: theme.colors.onSurface 
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.onSurface,
                 }]}
-                placeholder={measurement_placeholder || `Enter area in ${unit_measure}`}
+                placeholder={inputPlaceholder}
                 placeholderTextColor={theme.colors.onSurfaceVariant}
                 value={measurement}
                 onChangeText={handleMeasurementChange}
                 keyboardType="numeric"
                 autoFocus
+                selectionColor={theme.colors.primary}
               />
-              <Text variant="bodySmall" style={[styles.unitLabel, { color: theme.colors.onSurfaceVariant }]}>
-                {unit_measure}
+            </View>
+
+            <View style={styles.measurementInput}>
+              <Text variant="bodyMedium" style={[styles.inputLabel, { color: theme.colors.onSurface }]}>
+                Distance (km)
               </Text>
+              <TextInput
+                style={[styles.textInput, { 
+                  borderColor: theme.colors.outline,
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.onSurface,
+                }]}
+                placeholder="Enter distance in km"
+                placeholderTextColor={theme.colors.onSurfaceVariant}
+                value={distance}
+                onChangeText={handleDistanceChange}
+                keyboardType="numeric"
+                selectionColor={theme.colors.primary}
+              />
             </View>
 
             {calculatedPrice > 0 && (
               <View style={styles.priceCalculation}>
-                <Text variant="bodyMedium" style={[styles.calculationText, { color: theme.colors.onSurface }]}>
-                  {measurement} {unit_measure} × €{unit_price?.toFixed(2)} = 
+                <Text variant="bodySmall" style={[styles.calculationText, { color: theme.colors.onSurface }]}>
+                  {isOfficeMoving ? 'Items' : 'Area'}: {measurement} {isOfficeMoving ? 'items' : 'm²'} × €{unit_price?.toFixed(2)} = €{(parseFloat(measurement) * (unit_price || 0)).toFixed(2)}
+                </Text>
+                <Text variant="bodySmall" style={[styles.calculationText, { color: theme.colors.onSurface }]}>
+                  Transport: {distance} km × €0.50 = €{(parseFloat(distance) * 0.5).toFixed(2)}
+                </Text>
+                <Text variant="bodySmall" style={[styles.calculationText, { color: theme.colors.onSurface }]}>
+                  Subtotal: €{((parseFloat(measurement) * (unit_price || 0)) + (parseFloat(distance) * 0.5)).toFixed(2)}
+                </Text>
+                <Text variant="bodySmall" style={[styles.calculationText, { color: theme.colors.onSurface }]}>
+                  VAT (19%): €{(((parseFloat(measurement) * (unit_price || 0)) + (parseFloat(distance) * 0.5)) * 0.19).toFixed(2)}
                 </Text>
                 <Text variant="titleLarge" style={[styles.totalPrice, { color: theme.colors.primary }]}>
-                  €{calculatedPrice.toFixed(2)}
+                  Total: €{calculatedPrice.toFixed(2)}
                 </Text>
               </View>
             )}
@@ -265,13 +356,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               <Button
                 mode="contained"
                 onPress={handleConfirmMeasurement}
-                disabled={!measurement || calculatedPrice <= 0}
+                disabled={!measurement || !distance || calculatedPrice <= 0}
                 style={styles.modalButton}
               >
                 Add to Cart
               </Button>
             </View>
-          </View>
+          </ScrollView>
         </Modal>
       </Portal>
     </Card>
@@ -380,32 +471,40 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 12,
     padding: 0,
+    maxHeight: '80%',
+  },
+  modalScrollView: {
+    flex: 1,
   },
   modalContent: {
     padding: 24,
+    flexGrow: 1,
   },
   modalTitle: {
     fontWeight: '600',
     marginBottom: 8,
     textAlign: 'center',
+    marginTop: 8,
   },
   modalDescription: {
     textAlign: 'center',
     marginBottom: 24,
   },
   measurementInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  inputLabel: {
+    marginBottom: 8,
+    fontWeight: '500',
   },
   textInput: {
-    flex: 1,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
-    marginRight: 8,
+    minHeight: 48,
+    width: '100%',
   },
   unitLabel: {
     fontWeight: '500',
@@ -415,6 +514,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.05)',
     borderRadius: 8,
     padding: 16,
+    marginTop: 8,
     marginBottom: 24,
     alignItems: 'center',
   },

@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../../components/AppHeader';
 import { useAuth } from '../../contexts/AuthContext';
-import { serviceBookingAPI, ServiceBooking } from '../../services/serviceBookingAPI';
+import { serviceBookingAPI, ServiceBooking, BookingGroup } from '../../services/serviceBookingAPI';
 import { OrdersStackScreenProps } from '../../navigation/types';
 
 type Props = OrdersStackScreenProps<'OrdersMain'>;
@@ -21,6 +21,7 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const [scheduledBookings, setScheduledBookings] = useState<ServiceBooking[]>([]);
   const [completedBookings, setCompletedBookings] = useState<ServiceBooking[]>([]);
+  const [bookingGroups, setBookingGroups] = useState<BookingGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'scheduled' | 'completed'>('scheduled');
@@ -34,12 +35,15 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
     
     try {
       setLoading(true);
-      const [scheduled, completed] = await Promise.all([
+      const [scheduled, completed, groups] = await Promise.all([
         serviceBookingAPI.getScheduledBookings(),
-        serviceBookingAPI.getCompletedBookings()
+        serviceBookingAPI.getCompletedBookings(),
+        serviceBookingAPI.getBookingGroups()
       ]);
+      
       setScheduledBookings(scheduled);
       setCompletedBookings(completed);
+      setBookingGroups(groups);
     } catch (error) {
       console.error('Error loading bookings:', error);
       Alert.alert('Error', 'Failed to load bookings');
@@ -88,13 +92,18 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleBookingPress = (booking: ServiceBooking) => {
+    // Navigate to details for both individual bookings and booking groups
     navigation.navigate('OrderDetails', { orderId: booking.id });
   };
 
   const handleCancelBooking = async (bookingId: string) => {
+    // Check if this is a booking group by looking at the booking data
+    const booking = allBookings.find(b => b.id === bookingId);
+    const isGroupBooking = booking?.is_group_booking;
+    
     Alert.alert(
       'Cancel Booking',
-      'Are you sure you want to cancel this booking?',
+      `Are you sure you want to cancel this ${isGroupBooking ? 'multi-day booking' : 'booking'}?`,
       [
         { text: 'No', style: 'cancel' },
         {
@@ -102,7 +111,11 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await serviceBookingAPI.cancelBooking(bookingId);
+              if (isGroupBooking) {
+                await serviceBookingAPI.cancelBookingGroup(bookingId);
+              } else {
+                await serviceBookingAPI.cancelBooking(bookingId);
+              }
               await loadBookings();
               Alert.alert('Success', 'Booking cancelled successfully');
             } catch (error) {
@@ -114,11 +127,73 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const currentBookings = activeTab === 'scheduled' ? scheduledBookings : completedBookings;
+  // Convert booking groups to individual booking format for consistent UI
+  const convertGroupToBooking = (group: BookingGroup): ServiceBooking => {
+    // Parse the booking_dates array (it's stored as JSON string)
+    let parsedDates: any[] = [];
+    try {
+      const datesString = Array.isArray(group.booking_dates) ? group.booking_dates[0] : group.booking_dates;
+      parsedDates = JSON.parse(typeof datesString === 'string' ? datesString : '[]');
+    } catch (e) {
+      parsedDates = [];
+    }
+    
+    // Use the first date for display, or fallback to created_at
+    const firstDate = parsedDates[0] || { date: group.created_at.split('T')[0], time: '00:00' };
+    
+    return {
+      id: group.id,
+      user_id: group.user_id,
+      service_id: group.service_id,
+      service_variant_id: group.service_variant_id,
+      booking_date: firstDate.date,
+      booking_time: firstDate.time,
+      duration_minutes: group.duration_minutes,
+      status: group.status as 'scheduled' | 'completed',
+      customer_name: group.customer_name,
+      customer_email: group.customer_email,
+      customer_phone: group.customer_phone || '',
+      service_address: group.service_address,
+      special_instructions: group.special_instructions || '',
+      total_amount: group.total_amount,
+      payment_status: group.payment_status,
+      payment_method: group.payment_method || 'pending',
+      is_multi_day: true,
+      is_group_booking: true,
+      group_id: group.id,
+      created_at: group.created_at,
+      updated_at: group.updated_at,
+      services: {
+        id: group.service_id,
+        title: group.service_title,
+        description: '',
+        category: '',
+        duration: `${group.duration_minutes / 60}h`
+      },
+      service_variants: {
+        id: group.service_variant_id,
+        title: group.service_variant_title,
+        description: '',
+        duration: `${group.duration_minutes / 60}h`,
+        price: group.total_amount
+      }
+    };
+  };
+
+  // Convert booking groups to individual booking format and merge with regular bookings
+  const currentGroups = bookingGroups.filter(group => 
+    activeTab === 'scheduled' ? group.status === 'scheduled' : group.status === 'completed'
+  );
+  const convertedGroups = currentGroups.map(convertGroupToBooking);
+  
+  // Merge regular bookings with converted groups and sort by creation date
+  const allBookings = [...(activeTab === 'scheduled' ? scheduledBookings : completedBookings), ...convertedGroups]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader title="My Orders" />
+      
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -136,12 +211,12 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
             buttons={[
               {
                 value: 'scheduled',
-                label: `Scheduled (${scheduledBookings.length})`,
+                label: `Scheduled (${scheduledBookings.length + bookingGroups.filter(g => g.status === 'scheduled').length})`,
                 icon: 'calendar-clock',
               },
               {
                 value: 'completed',
-                label: `Completed (${completedBookings.length})`,
+                label: `Completed (${completedBookings.length + bookingGroups.filter(g => g.status === 'completed').length})`,
                 icon: 'check-circle',
               },
             ]}
@@ -154,7 +229,7 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.loadingContainer}>
             <Text>Loading bookings...</Text>
           </View>
-        ) : currentBookings.length === 0 ? (
+        ) : allBookings.length === 0 ? (
           <Card style={[styles.emptyCard, { backgroundColor: theme.colors.surface }]}>
             <Card.Content style={styles.emptyContent}>
               <Ionicons name="calendar-outline" size={64} color={theme.colors.onSurfaceVariant} />
@@ -178,7 +253,8 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
           </Card>
         ) : (
           <View style={styles.ordersContainer}>
-            {(currentBookings || []).map((booking, index) => (
+            {/* Render all bookings (both individual and converted groups) */}
+            {allBookings.map((booking, index) => (
               <Card 
                 key={booking.id} 
                 style={[styles.orderCard, { backgroundColor: theme.colors.surface }]}
@@ -216,6 +292,11 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
                     <View style={styles.serviceInfo}>
                       <Text variant="bodyMedium" style={[styles.serviceTitle, { color: theme.colors.onSurface }]}>
                         {booking.services?.title || 'Service'}
+                        {booking.is_multi_day && (
+                          <Text variant="bodySmall" style={[styles.multiDayBadge, { color: theme.colors.primary }]}>
+                            {' '}(Multi-day)
+                          </Text>
+                        )}
                       </Text>
                       <Text variant="bodySmall" style={[styles.serviceDate, { color: theme.colors.onSurfaceVariant }]}>
                         {formatDate(booking.booking_date)} at {formatTime(booking.booking_time)}
@@ -351,6 +432,12 @@ const styles = StyleSheet.create({
   serviceTitle: {
     fontWeight: '500',
     marginBottom: 4,
+  },
+  multiDayBadge: {
+    fontWeight: '600',
+  },
+  multiDayInfo: {
+    marginBottom: 2,
   },
   serviceDate: {
     marginBottom: 2,

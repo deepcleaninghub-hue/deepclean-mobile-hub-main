@@ -19,7 +19,8 @@ router.get('/', async (req, res) => {
         services (
           id,
           title,
-          category
+          category,
+          image_url
         )
       `)
       .eq('is_active', true);
@@ -86,7 +87,8 @@ router.get('/:id', async (req, res) => {
           id,
           title,
           category,
-          description
+          description,
+          image_url
         )
       `)
       .eq('id', id)
@@ -167,7 +169,8 @@ router.post('/', [
         services (
           id,
           title,
-          category
+          category,
+          image_url
         )
       `)
       .single();
@@ -213,7 +216,8 @@ router.put('/:id', [protect, admin], async (req, res) => {
         services (
           id,
           title,
-          category
+          category,
+          image_url
         )
       `)
       .single();

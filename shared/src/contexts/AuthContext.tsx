@@ -39,6 +39,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loadStoredUser();
   }, []);
 
+  // Set up HTTP client logout callback
+  useEffect(() => {
+    httpClient.setLogoutCallback(() => {
+      setUser(null);
+      secureLog('info', 'User logged out due to session expiration');
+    });
+  }, []);
+
   // Token refresh mechanism
   useEffect(() => {
     if (!user) return;
@@ -112,7 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       secureLog('info', 'Attempting to sign in', { email });
 
-      const response = await httpClient.post<{ success: boolean; data: { user: User; token: string } }>(
+      const response = await httpClient.post<{ success: boolean; data: { user: User; token: string }; error?: string }>(
         '/mobile-auth/signin',
         {
           email: email.toLowerCase().trim(),
@@ -132,12 +140,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         secureLog('info', 'Sign in successful', { email: userData.email });
         return true;
       } else {
-        Alert.alert('Authentication Failed', 'Invalid email or password. Please try again.');
+        // Handle specific authentication errors
+        const errorMessage = response.error || 'Invalid email or password';
+        Alert.alert(
+          'Login Failed', 
+          errorMessage.includes('Invalid credentials') || errorMessage.includes('Invalid email') || errorMessage.includes('Invalid password')
+            ? 'Wrong email or password. Please check your credentials and try again.'
+            : errorMessage,
+          [{ text: 'OK', style: 'default' }]
+        );
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       secureLog('error', 'Sign in error', { error, email });
-      Alert.alert('Error', 'Failed to sign in. Please try again.');
+      
+      // Handle network errors
+      if (error.message && error.message.includes('Network request failed')) {
+        Alert.alert(
+          'Connection Error',
+          'Unable to connect to the server. Please check your internet connection and try again.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else if (error.message && error.message.includes('401')) {
+        Alert.alert(
+          'Login Failed',
+          'Wrong email or password. Please check your credentials and try again.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else {
+        Alert.alert(
+          'Login Error',
+          'Failed to sign in. Please try again.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      }
       return false;
     } finally {
       setLoading(false);
@@ -149,20 +185,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string,
     firstName: string,
     lastName: string,
-    phone?: string
+    phone: string,
+    address: string
   ): Promise<boolean> => {
     try {
       setLoading(true);
       updateLastActivity();
 
-      const response = await httpClient.post<{ success: boolean; data: { user: User; token: string } }>(
+      const response = await httpClient.post<{ success: boolean; data: { user: User; token: string }; error?: string }>(
         '/mobile-auth/signup',
         {
           email: email.toLowerCase().trim(),
           password,
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-          phone: phone?.trim() || '',
+          phone: phone.trim(),
+          address: address.trim(),
         }
       );
 
@@ -178,12 +216,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         secureLog('info', 'Sign up successful', { email: userData.email });
         return true;
       } else {
-        Alert.alert('Sign Up Failed', 'Failed to create account. Please try again.');
+        // Handle specific signup errors
+        const errorMessage = response.error || 'Failed to create account';
+        Alert.alert(
+          'Sign Up Failed', 
+          errorMessage.includes('already exists') || errorMessage.includes('User already exists')
+            ? 'An account with this email already exists. Please try logging in instead.'
+            : errorMessage.includes('Invalid email')
+            ? 'Please enter a valid email address.'
+            : errorMessage.includes('Password must be')
+            ? 'Password must be at least 6 characters long.'
+            : errorMessage,
+          [{ text: 'OK', style: 'default' }]
+        );
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       secureLog('error', 'Sign up error', { error, email });
-      Alert.alert('Error', 'Failed to create account. Please try again.');
+      
+      // Handle network errors
+      if (error.message && error.message.includes('Network request failed')) {
+        Alert.alert(
+          'Connection Error',
+          'Unable to connect to the server. Please check your internet connection and try again.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else if (error.message && error.message.includes('400')) {
+        Alert.alert(
+          'Sign Up Failed',
+          'Please check your information and try again.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else {
+        Alert.alert(
+          'Sign Up Error',
+          'Failed to create account. Please try again.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      }
       return false;
     } finally {
       setLoading(false);

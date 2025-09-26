@@ -51,7 +51,7 @@ export function BookingListScreen({ navigation }: any) {
   const filterBookings = () => {
     let filtered = bookings.filter(booking => {
       const matchesTab = activeTab === 'scheduled' 
-        ? booking.status === 'scheduled' || booking.status === 'confirmed'
+        ? booking.status === 'pending' || booking.status === 'confirmed'
         : booking.status === 'completed';
       
       const matchesSearch = searchQuery === '' || 
@@ -164,7 +164,7 @@ export function BookingListScreen({ navigation }: any) {
             buttons={[
               {
                 value: 'scheduled',
-                label: `Scheduled (${bookings.filter(b => b.status === 'scheduled' || b.status === 'confirmed').length})`,
+                label: `Scheduled (${bookings.filter(b => b.status === 'pending' || b.status === 'confirmed').length})`,
                 icon: 'calendar-clock',
               },
               {
@@ -237,10 +237,26 @@ export function BookingListScreen({ navigation }: any) {
                     <View style={styles.serviceInfo}>
                       <Text variant="bodyMedium" style={[styles.serviceTitle, { color: theme.colors.onSurface }]}>
                         {booking.services?.title || 'Service Booking'}
+                        {booking.is_multi_day && (
+                          <Text variant="bodySmall" style={[styles.multiDayBadge, { color: theme.colors.primary }]}>
+                            {' '}({booking.totalDays || 1} days)
+                          </Text>
+                        )}
                       </Text>
-                      <Text variant="bodySmall" style={[styles.serviceDate, { color: theme.colors.onSurfaceVariant }]}>
-                        {formatDate(booking.booking_date || booking.date)} at {formatTime(booking.booking_time || booking.time)}
-                      </Text>
+                      {booking.is_multi_day && booking.allBookingDates ? (
+                        <View style={styles.multiDayInfo}>
+                          <Text variant="bodySmall" style={[styles.serviceDate, { color: theme.colors.onSurfaceVariant }]}>
+                            {booking.allBookingDates.length} appointments scheduled
+                          </Text>
+                          <Text variant="bodySmall" style={[styles.serviceDate, { color: theme.colors.onSurfaceVariant }]}>
+                            {formatDate(booking.allBookingDates?.[0]?.date || '')} - {formatDate(booking.allBookingDates?.[booking.allBookingDates.length - 1]?.date || '')}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text variant="bodySmall" style={[styles.serviceDate, { color: theme.colors.onSurfaceVariant }]}>
+                          {formatDate(booking.booking_date || booking.date)} at {formatTime(booking.booking_time || booking.time)}
+                        </Text>
+                      )}
                       <Text variant="bodySmall" style={[styles.serviceAddress, { color: theme.colors.onSurfaceVariant }]}>
                         {booking.customer_name || `Customer: ${booking.customerId}`}
                       </Text>
@@ -259,7 +275,7 @@ export function BookingListScreen({ navigation }: any) {
                     >
                       View Details
                     </Button>
-                    {(booking.status === 'scheduled' || booking.status === 'confirmed') && (
+                    {(booking.status === 'pending' || booking.status === 'confirmed') && (
                       <Button
                         mode="outlined"
                         onPress={() => handleCancelBooking(booking.id)}
@@ -384,6 +400,12 @@ const styles = StyleSheet.create({
   serviceTitle: {
     fontWeight: '500',
     marginBottom: 4,
+  },
+  multiDayBadge: {
+    fontWeight: '600',
+  },
+  multiDayInfo: {
+    marginBottom: 2,
   },
   serviceDate: {
     marginBottom: 2,

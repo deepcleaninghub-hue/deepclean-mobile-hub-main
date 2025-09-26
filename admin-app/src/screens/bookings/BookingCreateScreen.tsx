@@ -5,8 +5,10 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
-import { Text, Card, Button, TextInput, useTheme, Divider } from 'react-native-paper';
+import { Text, Card, Button, TextInput, useTheme, Divider, Switch } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MultiDateSelector from '../../../../shared/src/components/MultiDateSelector';
+import { BookingDate } from '../../../../shared/src/types';
 
 export function BookingCreateScreen({ navigation }: any) {
   const theme = useTheme();
@@ -16,10 +18,25 @@ export function BookingCreateScreen({ navigation }: any) {
   const [time, setTime] = useState('');
   const [priority, setPriority] = useState('medium');
   const [notes, setNotes] = useState('');
+  
+  // Multi-day booking state
+  const [isMultiDay, setIsMultiDay] = useState(false);
+  const [selectedDates, setSelectedDates] = useState<BookingDate[]>([]);
+  const [serviceTime, setServiceTime] = useState(new Date());
 
   const handleCreateBooking = async () => {
-    if (!customerId || !serviceId || !date || !time) {
+    if (!customerId || !serviceId) {
       Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+    
+    if (isMultiDay && selectedDates.length === 0) {
+      Alert.alert('Error', 'Please select at least one service date');
+      return;
+    }
+    
+    if (!isMultiDay && (!date || !time)) {
+      Alert.alert('Error', 'Please select service date and time');
       return;
     }
 
@@ -69,23 +86,47 @@ export function BookingCreateScreen({ navigation }: any) {
               mode="outlined"
             />
             
-            <TextInput
-              label="Date (YYYY-MM-DD) *"
-              value={date}
-              onChangeText={setDate}
-              style={styles.input}
-              mode="outlined"
-              placeholder="2024-01-15"
-            />
+            {/* Multi-day booking toggle */}
+            <View style={styles.multiDayToggle}>
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                Multiple Days
+              </Text>
+              <Switch
+                value={isMultiDay}
+                onValueChange={setIsMultiDay}
+                color={theme.colors.primary}
+              />
+            </View>
             
-            <TextInput
-              label="Time (HH:MM) *"
-              value={time}
-              onChangeText={setTime}
-              style={styles.input}
-              mode="outlined"
-              placeholder="14:30"
-            />
+            {isMultiDay ? (
+              <MultiDateSelector
+                selectedDates={selectedDates}
+                onDatesChange={setSelectedDates}
+                serviceTime={serviceTime}
+                onTimeChange={setServiceTime}
+                maxDays={7}
+              />
+            ) : (
+              <>
+                <TextInput
+                  label="Date (YYYY-MM-DD) *"
+                  value={date}
+                  onChangeText={setDate}
+                  style={styles.input}
+                  mode="outlined"
+                  placeholder="2024-01-15"
+                />
+                
+                <TextInput
+                  label="Time (HH:MM) *"
+                  value={time}
+                  onChangeText={setTime}
+                  style={styles.input}
+                  mode="outlined"
+                  placeholder="14:30"
+                />
+              </>
+            )}
             
             <TextInput
               label="Priority"
@@ -162,6 +203,13 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 16,
+  },
+  multiDayToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 8,
   },
   actionButtons: {
     flexDirection: 'row',

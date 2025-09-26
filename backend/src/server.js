@@ -21,7 +21,7 @@ const adminBookingsRoutes = require('./routes/adminBookings');
 const uploadRoutes = require('./routes/upload');
 const cartRoutes = require('./routes/cart');
 const profileRoutes = require('./routes/profile');
-const orderRoutes = require('./routes/orders');
+// const orderRoutes = require('./routes/orders'); // Removed - functionality moved to serviceBookings
 const serviceBookingRoutes = require('./routes/serviceBookings');
 const serviceOptionsRoutes = require('./routes/serviceOptions');
 const serviceVariantsRoutes = require('./routes/serviceVariants');
@@ -94,7 +94,7 @@ app.use('/api/admin/bookings', adminBookingsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/profile', profileRoutes);
-app.use('/api/orders', orderRoutes);
+// app.use('/api/orders', orderRoutes); // Removed - functionality moved to serviceBookings
 app.use('/api/service-bookings', serviceBookingRoutes);
 app.use('/api/service-options', serviceOptionsRoutes);
 app.use('/api/service-variants', serviceVariantsRoutes);

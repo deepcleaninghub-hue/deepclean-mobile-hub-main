@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../../components/AppHeader';
 import { useAuth } from '../../contexts/AuthContext';
-import { serviceBookingAPI, ServiceBooking } from '../../services/serviceBookingAPI';
+import { serviceBookingAPI, ServiceBooking, BookingGroup } from '../../services/serviceBookingAPI';
 import { OrdersStackScreenProps } from '../../navigation/types';
 
 type Props = OrdersStackScreenProps<'OrderDetails'>;
@@ -51,16 +51,25 @@ interface Order {
     currentLocation?: string;
     lastUpdate: string;
   };
+  // Multi-day booking support
+  isMultiDay?: boolean;
+  totalDays?: number;
+  allBookingDates?: Array<{
+    date: string;
+    time: string;
+    bookingId: string;
+  }>;
 }
 
 export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const theme = useTheme();
   const { user } = useAuth();
   const { orderId } = route.params;
-  const [order, setOrder] = useState<Order | ServiceBooking | null>(null);
+  const [order, setOrder] = useState<Order | ServiceBooking | BookingGroup | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const isBooking = !!(order as ServiceBooking)?.booking_date;
+  const isBookingGroup = !!(order as BookingGroup)?.group_name;
 
   useEffect(() => {
     loadOrderDetails();
@@ -69,10 +78,30 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const loadOrderDetails = async () => {
     try {
       setLoading(true);
-      // For now, we'll use the serviceBookingAPI to get booking details
-      // In a real app, you might have a separate orderAPI
-      const bookingDetails = await serviceBookingAPI.getBookingById(orderId);
-      setOrder(bookingDetails);
+      
+      // Try to get as individual booking first
+      try {
+        const bookingDetails = await serviceBookingAPI.getBookingById(orderId);
+        console.log('🔍 OrderDetailsScreen - Received individual booking data:', bookingDetails);
+        setOrder(bookingDetails);
+        return;
+      } catch (individualError) {
+        console.log('Not an individual booking, trying as booking group...');
+      }
+      
+      // If not found as individual booking, try as booking group
+      try {
+        const groupDetails = await serviceBookingAPI.getBookingGroup(orderId);
+        console.log('🔍 OrderDetailsScreen - Received booking group data:', groupDetails);
+        setOrder(groupDetails);
+        return;
+      } catch (groupError) {
+        console.log('Not a booking group either, showing error...');
+      }
+      
+      // If neither worked, show error
+      throw new Error('Booking not found');
+      
     } catch (error) {
       console.error('Error loading order details:', error);
       Alert.alert('Error', 'Failed to load order details');
@@ -143,7 +172,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const handleCancelOrder = async () => {
     if (!order) return;
     
-    const itemType = isBooking ? 'booking' : 'order';
+    const itemType = isBooking || isBookingGroup ? 'booking' : 'order';
     Alert.alert(
       `Cancel ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`,
       `Are you sure you want to cancel this ${itemType}? This action cannot be undone.`,
@@ -193,7 +222,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  const canCancel = isBooking ? order.status === 'scheduled' : (order.status === 'pending' || order.status === 'confirmed');
+  const canCancel = isBooking || isBookingGroup ? order.status === 'scheduled' : (order.status === 'pending' || order.status === 'confirmed');
   // Reschedule disabled
 
   return (
@@ -237,7 +266,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.statusSteps}>
               <View style={[styles.statusStep, order.status !== 'cancelled' && (order.status === 'scheduled' || order.status === 'pending' || order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? styles.activeStep : styles.inactiveStep]}>
                 <Ionicons name="checkmark-circle" size={20} color={order.status !== 'cancelled' && (order.status === 'scheduled' || order.status === 'pending' || order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? '#4CAF50' : '#E0E0E0'} />
-                <Text variant="bodySmall" style={styles.stepText}>{isBooking ? 'Booking Placed' : 'Order Placed'}</Text>
+                <Text variant="bodySmall" style={styles.stepText}>{isBooking || isBookingGroup ? 'Booking Placed' : 'Order Placed'}</Text>
               </View>
               
               <View style={[styles.statusStep, order.status !== 'cancelled' && (order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? styles.activeStep : styles.inactiveStep]}>
@@ -299,19 +328,20 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             
             <View style={styles.infoRow}>
               <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
-                {isBooking ? 'Booking Number' : 'Order Number'}
+                {isBooking || isBookingGroup ? 'Booking Number' : 'Order Number'}
               </Text>
               <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-                #{isBooking ? order.id.slice(-8) : (order as Order).orderNumber}
+                #{isBooking || isBookingGroup ? order.id.slice(-8) : (order as Order).orderNumber}
               </Text>
             </View>
             
+            {/* Service Date and Time */}
             <View style={styles.infoRow}>
               <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
                 Service Date
               </Text>
               <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-                {formatDate(isBooking ? (order as ServiceBooking).booking_date : (order as Order).serviceDate)}
+                {formatDate(isBooking ? (order as ServiceBooking).booking_date : isBookingGroup ? (order as BookingGroup).created_at : (order as Order).serviceDate)}
               </Text>
             </View>
             
@@ -320,16 +350,28 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 Service Time
               </Text>
               <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-                {formatTime(isBooking ? (order as ServiceBooking).booking_time : (order as Order).serviceTime)}
+                {formatTime(isBooking ? (order as ServiceBooking).booking_time : isBookingGroup ? '00:00' : (order as Order).serviceTime)}
               </Text>
             </View>
+
+            {/* Multi-day indicator */}
+            {((isBooking && (order as ServiceBooking).is_multi_day) || isBookingGroup) && (
+              <View style={styles.infoRow}>
+                <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
+                  Booking Type
+                </Text>
+                <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.primary }]}>
+                  {isBookingGroup ? 'Multi-day Booking Group' : 'Multi-day Booking'}
+                </Text>
+              </View>
+            )}
             
             <View style={styles.infoRow}>
               <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
                 Total Amount
               </Text>
               <Text variant="titleMedium" style={[styles.infoValue, { color: theme.colors.primary, fontWeight: 'bold' }]}>
-                €{(isBooking ? (order as ServiceBooking).total_amount : (order as Order).totalAmount || 0).toFixed(2)}
+                €{(isBooking ? (order as ServiceBooking).total_amount : isBookingGroup ? (order as BookingGroup).total_amount : (order as Order).totalAmount || 0).toFixed(2)}
               </Text>
             </View>
           </Card.Content>
@@ -346,9 +388,9 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.addressContainer}>
               <Ionicons name="location-outline" size={20} color={theme.colors.onSurfaceVariant} />
               <View style={styles.addressText}>
-                {isBooking ? (
+                {isBooking || isBookingGroup ? (
                   <Text variant="bodyMedium" style={[styles.addressLine, { color: theme.colors.onSurface }]}>
-                    {(order as ServiceBooking).service_address}
+                    {isBookingGroup ? (order as BookingGroup).service_address : (order as ServiceBooking).service_address}
                   </Text>
                 ) : (
                   <>
@@ -395,6 +437,26 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   €{((order as ServiceBooking).total_amount || 0).toFixed(2)}
                 </Text>
               </View>
+            ) : isBookingGroup ? (
+              <View style={styles.serviceItem}>
+                <View style={styles.serviceInfo}>
+                  <Text variant="bodyLarge" style={[styles.serviceTitle, { color: theme.colors.onSurface }]}>
+                    {(order as BookingGroup).service_title || 'Service'}
+                  </Text>
+                  <Text variant="bodyMedium" style={[styles.serviceQuantity, { color: theme.colors.onSurfaceVariant }]}>
+                    Variant: {(order as BookingGroup).service_variant_title || 'Standard'}
+                  </Text>
+                  <Text variant="bodyMedium" style={[styles.serviceQuantity, { color: theme.colors.onSurfaceVariant }]}>
+                    Duration: {(order as BookingGroup).duration_minutes} minutes per day
+                  </Text>
+                  <Text variant="bodyMedium" style={[styles.serviceQuantity, { color: theme.colors.onSurfaceVariant }]}>
+                    Group: {(order as BookingGroup).group_name || 'Multi-day Booking'}
+                  </Text>
+                </View>
+                <Text variant="titleMedium" style={[styles.servicePrice, { color: theme.colors.primary }]}>
+                  €{((order as BookingGroup).total_amount || 0).toFixed(2)}
+                </Text>
+              </View>
             ) : (
               ((order as Order).items || []).map((item, index) => (
                 <View key={index} style={styles.serviceItem}>
@@ -416,7 +478,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         </Card>
 
         {/* Special Instructions */}
-        {(isBooking ? (order as ServiceBooking).special_instructions : (order as Order).specialInstructions) && (
+        {(isBooking ? (order as ServiceBooking).special_instructions : isBookingGroup ? (order as BookingGroup).special_instructions : (order as Order).specialInstructions) && (
           <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
             <Card.Content>
               <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
@@ -424,7 +486,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
               </Text>
               <Divider style={styles.divider} />
               <Text variant="bodyMedium" style={[styles.instructionsText, { color: theme.colors.onSurface }]}>
-                {isBooking ? (order as ServiceBooking).special_instructions : (order as Order).specialInstructions}
+                {isBooking ? (order as ServiceBooking).special_instructions : isBookingGroup ? (order as BookingGroup).special_instructions : (order as Order).specialInstructions}
               </Text>
             </Card.Content>
           </Card>
@@ -542,6 +604,28 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontWeight: '500',
+  },
+  multiDaySection: {
+    marginBottom: 12,
+  },
+  multiDayDates: {
+    marginTop: 8,
+  },
+  dateItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  dateText: {
+    fontWeight: '500',
+  },
+  timeText: {
+    fontSize: 12,
   },
   addressContainer: {
     flexDirection: 'row',
