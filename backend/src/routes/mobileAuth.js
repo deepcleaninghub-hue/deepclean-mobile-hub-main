@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
   console.log('Request body:', JSON.stringify(req.body, null, 2));
 
   try {
-    const { email, password, first_name, last_name, phone } = req.body;
+    const { email, password, first_name, last_name, phone, address } = req.body;
 
     // Check if user already exists
     const { data: existingUser } = await supabase
@@ -456,8 +456,8 @@ router.put('/profile', [
       updated_at: new Date().toISOString()
     };
 
-    if (firstName) updateData.first_name = firstName;
-    if (lastName) updateData.last_name = lastName;
+    if (first_name) updateData.first_name = first_name;
+    if (last_name) updateData.last_name = last_name;
     if (phone !== undefined) updateData.phone = phone;
 
     // Update user data
