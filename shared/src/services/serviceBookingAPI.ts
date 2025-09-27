@@ -91,7 +91,6 @@ export interface BookingGroup {
   }>;
 }
 
->>>>>>> refs/remotes/origin/main
 export interface CreateServiceBookingData {
   service_id: string;
   booking_date: string;
@@ -295,7 +294,6 @@ class ServiceBookingAPI {
       throw error;
     }
   }
->>>>>>> refs/remotes/origin/main
 }
 
 export const serviceBookingAPI = new ServiceBookingAPI();
