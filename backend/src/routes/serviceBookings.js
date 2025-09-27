@@ -1,9 +1,12 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { supabase } = require('../config/database');
+<<<<<<< HEAD
+=======
 const emailService = require('../services/emailService');
 const whatsappService = require('../services/whatsappService');
 const whatsappCloudService = require('../services/whatsappCloudService');
+>>>>>>> refs/remotes/origin/main
 
 const router = express.Router();
 
@@ -35,6 +38,8 @@ router.get('/test', async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+=======
 // @desc    Test WhatsApp service
 // @route   GET /api/service-bookings/test-whatsapp
 // @access  Public
@@ -87,6 +92,7 @@ router.get('/test-whatsapp', async (req, res) => {
   }
 });
 
+>>>>>>> refs/remotes/origin/main
 // Middleware to verify JWT token and get user
 const verifyToken = async (req, res, next) => {
   try {
@@ -124,8 +130,12 @@ const verifyToken = async (req, res, next) => {
 // @access  Private
 router.get('/', verifyToken, async (req, res) => {
   try {
+<<<<<<< HEAD
+    const { data: bookings, error } = await supabase
+=======
     // Get parent bookings (including single-day bookings)
     const { data: parentBookings, error: parentError } = await supabase
+>>>>>>> refs/remotes/origin/main
       .from('service_bookings')
       .select(`
         *,
@@ -137,17 +147,29 @@ router.get('/', verifyToken, async (req, res) => {
         )
       `)
       .eq('user_id', req.user.id)
+<<<<<<< HEAD
+      .order('booking_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching bookings:', error);
+=======
       .is('parent_booking_id', null)
       .order('booking_date', { ascending: false });
 
     if (parentError) {
       console.error('Error fetching parent bookings:', parentError);
+>>>>>>> refs/remotes/origin/main
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch bookings'
       });
     }
 
+<<<<<<< HEAD
+    res.json({
+      success: true,
+      data: bookings
+=======
     // For each parent booking, get child bookings if it's multi-day
     const bookingsWithChildren = await Promise.all(
       parentBookings.map(async (parentBooking) => {
@@ -183,6 +205,7 @@ router.get('/', verifyToken, async (req, res) => {
     res.json({
       success: true,
       data: bookingsWithChildren
+>>>>>>> refs/remotes/origin/main
     });
   } catch (error) {
     console.error('Error fetching bookings:', error);
@@ -198,8 +221,12 @@ router.get('/', verifyToken, async (req, res) => {
 // @access  Private
 router.get('/scheduled', verifyToken, async (req, res) => {
   try {
+<<<<<<< HEAD
+    const { data: bookings, error } = await supabase
+=======
     // Get all scheduled bookings (both parent and child)
     const { data: allBookings, error: bookingsError } = await supabase
+>>>>>>> refs/remotes/origin/main
       .from('service_bookings')
       .select(`
         *,
@@ -220,8 +247,13 @@ router.get('/scheduled', verifyToken, async (req, res) => {
       .eq('status', 'scheduled')
       .order('booking_date', { ascending: true });
 
+<<<<<<< HEAD
+    if (error) {
+      console.error('Error fetching scheduled bookings:', error);
+=======
     if (bookingsError) {
       console.error('Error fetching scheduled bookings:', bookingsError);
+>>>>>>> refs/remotes/origin/main
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch scheduled bookings'
@@ -230,7 +262,11 @@ router.get('/scheduled', verifyToken, async (req, res) => {
 
     res.json({
       success: true,
+<<<<<<< HEAD
+      data: bookings
+=======
       data: allBookings
+>>>>>>> refs/remotes/origin/main
     });
   } catch (error) {
     console.error('Error fetching scheduled bookings:', error);
@@ -246,8 +282,12 @@ router.get('/scheduled', verifyToken, async (req, res) => {
 // @access  Private
 router.get('/completed', verifyToken, async (req, res) => {
   try {
+<<<<<<< HEAD
+    const { data: bookings, error } = await supabase
+=======
     // Get all completed bookings (both parent and child)
     const { data: allBookings, error: bookingsError } = await supabase
+>>>>>>> refs/remotes/origin/main
       .from('service_bookings')
       .select(`
         *,
@@ -268,8 +308,13 @@ router.get('/completed', verifyToken, async (req, res) => {
       .eq('status', 'completed')
       .order('booking_date', { ascending: false });
 
+<<<<<<< HEAD
+    if (error) {
+      console.error('Error fetching completed bookings:', error);
+=======
     if (bookingsError) {
       console.error('Error fetching completed bookings:', bookingsError);
+>>>>>>> refs/remotes/origin/main
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch completed bookings'
@@ -278,7 +323,11 @@ router.get('/completed', verifyToken, async (req, res) => {
 
     res.json({
       success: true,
+<<<<<<< HEAD
+      data: bookings
+=======
       data: allBookings
+>>>>>>> refs/remotes/origin/main
     });
   } catch (error) {
     console.error('Error fetching completed bookings:', error);
@@ -289,6 +338,8 @@ router.get('/completed', verifyToken, async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+=======
 // @desc    Get booking groups for a user
 // @route   GET /api/service-bookings/groups
 // @access  Private
@@ -327,6 +378,7 @@ router.get('/groups', verifyToken, async (req, res) => {
   }
 });
 
+>>>>>>> refs/remotes/origin/main
 // @desc    Get single service booking
 // @route   GET /api/service-bookings/:id
 // @access  Private
@@ -360,6 +412,8 @@ router.get('/:id', verifyToken, async (req, res) => {
       });
     }
 
+<<<<<<< HEAD
+=======
     // If it's a multi-day booking, get all related dates
     if (booking.is_multi_day) {
       const { data: childBookings, error: childError } = await supabase
@@ -381,6 +435,7 @@ router.get('/:id', verifyToken, async (req, res) => {
       }
     }
 
+>>>>>>> refs/remotes/origin/main
     res.json({
       success: true,
       data: booking
@@ -401,11 +456,16 @@ router.post('/', [
   verifyToken,
   [
     body('service_id').notEmpty().withMessage('Service ID is required'),
+<<<<<<< HEAD
+    body('booking_date').isISO8601().withMessage('Valid booking date is required'),
+    body('booking_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Valid booking time is required (HH:MM format)'),
+=======
     body('booking_date').optional().isISO8601().withMessage('Valid booking date is required'),
     body('booking_time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Valid booking time is required (HH:MM format)'),
     body('booking_dates').optional().isArray().withMessage('Booking dates must be an array'),
     body('booking_dates.*.date').optional().isISO8601().withMessage('Each booking date must be valid'),
     body('booking_dates.*.time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Each booking time must be valid (HH:MM format)'),
+>>>>>>> refs/remotes/origin/main
     body('duration_minutes').isInt({ min: 1 }).withMessage('Duration must be a positive integer'),
     body('customer_name').notEmpty().withMessage('Customer name is required'),
     body('customer_email').isEmail().withMessage('Valid email is required'),
@@ -426,7 +486,10 @@ router.post('/', [
       service_id,
       booking_date,
       booking_time,
+<<<<<<< HEAD
+=======
       booking_dates,
+>>>>>>> refs/remotes/origin/main
       duration_minutes,
       customer_name,
       customer_email,
@@ -437,6 +500,8 @@ router.post('/', [
       payment_method = 'pending'
     } = req.body;
 
+<<<<<<< HEAD
+=======
     // Determine if this is a multi-day booking
     const isMultiDay = booking_dates && booking_dates.length > 1;
     const datesToProcess = isMultiDay ? booking_dates : [{ date: booking_date, time: booking_time }];
@@ -464,6 +529,7 @@ router.post('/', [
       });
     }
 
+>>>>>>> refs/remotes/origin/main
     // Check if service variant exists
     console.log('🔍 DEBUG: Looking for service variant with ID:', service_id);
     const { data: serviceVariant, error: serviceError } = await supabase
@@ -490,6 +556,52 @@ router.post('/', [
       });
     }
 
+<<<<<<< HEAD
+    // Create booking
+    const bookingData = {
+      user_id: req.user.id,
+      service_id: serviceVariant.services.id, // Use the main service ID
+      service_variant_id: service_id, // Use the service variant ID
+      booking_date,
+      booking_time,
+      duration_minutes,
+      status: 'scheduled',
+      customer_name,
+      customer_email,
+      customer_phone: customer_phone || req.user.phone,
+      service_address,
+      special_instructions: special_instructions || null,
+      total_amount,
+      payment_status: 'pending',
+      payment_method,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    console.log('Creating booking with data:', bookingData);
+
+    const { data: booking, error: bookingError } = await supabase
+      .from('service_bookings')
+      .insert([bookingData])
+      .select('*')
+      .single();
+
+    console.log('Booking creation result:', { booking, bookingError });
+
+    if (bookingError) {
+      console.error('Error creating booking:', bookingError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to create booking'
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      data: booking,
+      message: 'Service booking created successfully'
+    });
+=======
     // Use new booking group system
     if (isMultiDay) {
       // Create booking group for multi-day bookings
@@ -698,6 +810,7 @@ router.post('/', [
         message: 'Single day booking created successfully'
       });
     }
+>>>>>>> refs/remotes/origin/main
   } catch (error) {
     console.error('Error creating booking:', error);
     res.status(500).json({
@@ -847,6 +960,10 @@ router.delete('/:id', verifyToken, async (req, res) => {
       });
     }
 
+<<<<<<< HEAD
+    // Update status to cancelled instead of deleting
+    const { data: booking, error: updateError } = await supabase
+=======
     // Cancel all related bookings if it's a multi-day booking
     let bookingsToCancel = [req.params.id];
     
@@ -883,12 +1000,17 @@ router.delete('/:id', verifyToken, async (req, res) => {
 
     // Update status to cancelled for all related bookings
     const { data: cancelledBookings, error: updateError } = await supabase
+>>>>>>> refs/remotes/origin/main
       .from('service_bookings')
       .update({
         status: 'cancelled',
         updated_at: new Date().toISOString()
       })
+<<<<<<< HEAD
+      .eq('id', req.params.id)
+=======
       .in('id', bookingsToCancel)
+>>>>>>> refs/remotes/origin/main
       .eq('user_id', req.user.id)
       .select(`
         *,
@@ -903,7 +1025,12 @@ router.delete('/:id', verifyToken, async (req, res) => {
           price,
           duration
         )
+<<<<<<< HEAD
+      `)
+      .single();
+=======
       `);
+>>>>>>> refs/remotes/origin/main
 
     if (updateError) {
       console.error('Error cancelling booking:', updateError);
@@ -917,14 +1044,21 @@ router.delete('/:id', verifyToken, async (req, res) => {
     setImmediate(async () => {
       try {
         const emailService = require('../services/emailService');
+<<<<<<< HEAD
+=======
         const whatsappService = require('../services/whatsappService');
+>>>>>>> refs/remotes/origin/main
         
         // Prepare booking data for notifications
         const bookingData = {
           customerName: req.user.name || req.user.email,
           customerEmail: req.user.email,
           customerPhone: req.user.phone || 'Not provided',
+<<<<<<< HEAD
+          orderId: `BOOKING-${booking.id}`,
+=======
           orderId: `BOOKING-${existingBooking.id}`,
+>>>>>>> refs/remotes/origin/main
           orderDate: new Date(existingBooking.created_at).toLocaleDateString(),
           serviceDate: new Date(existingBooking.service_date || existingBooking.booking_date).toLocaleDateString(),
           serviceTime: existingBooking.service_time || 'Not specified',
@@ -945,6 +1079,8 @@ router.delete('/:id', verifyToken, async (req, res) => {
 
         // Send cancellation notifications
         await emailService.sendCancellationEmails(bookingData);
+<<<<<<< HEAD
+=======
         
         // Send WhatsApp notification to admin
         try {
@@ -966,6 +1102,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
           console.error('❌ Failed to send cancellation WhatsApp notification:', whatsappError);
         }
         
+>>>>>>> refs/remotes/origin/main
         console.log('✅ Booking cancellation notifications sent successfully');
       } catch (notificationError) {
         console.error('❌ Error sending booking cancellation notifications:', notificationError);
@@ -986,6 +1123,8 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+=======
 // @desc    Get a specific booking group with all dates
 // @route   GET /api/service-bookings/groups/:groupId
 // @access  Private
@@ -1205,4 +1344,5 @@ router.delete('/groups/:groupId', [
   }
 });
 
+>>>>>>> refs/remotes/origin/main
 module.exports = router;

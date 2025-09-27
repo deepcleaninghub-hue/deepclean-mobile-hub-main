@@ -39,6 +39,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loadStoredUser();
   }, []);
 
+<<<<<<< HEAD
+=======
   // Set up HTTP client logout callback
   useEffect(() => {
     httpClient.setLogoutCallback(() => {
@@ -47,6 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
   }, []);
 
+>>>>>>> refs/remotes/origin/main
   // Token refresh mechanism
   useEffect(() => {
     if (!user) return;
@@ -120,7 +123,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       secureLog('info', 'Attempting to sign in', { email });
 
+<<<<<<< HEAD
+      const response = await httpClient.post<{ success: boolean; data: { user: User; token: string } }>(
+=======
       const response = await httpClient.post<{ success: boolean; data: { user: User; token: string }; error?: string }>(
+>>>>>>> refs/remotes/origin/main
         '/mobile-auth/signin',
         {
           email: email.toLowerCase().trim(),
@@ -140,6 +147,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         secureLog('info', 'Sign in successful', { email: userData.email });
         return true;
       } else {
+<<<<<<< HEAD
+        Alert.alert('Authentication Failed', 'Invalid email or password. Please try again.');
+        return false;
+      }
+    } catch (error) {
+      secureLog('error', 'Sign in error', { error, email });
+      Alert.alert('Error', 'Failed to sign in. Please try again.');
+=======
         // Handle specific authentication errors
         const errorMessage = response.error || 'Invalid email or password';
         Alert.alert(
@@ -174,6 +189,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           [{ text: 'OK', style: 'default' }]
         );
       }
+>>>>>>> refs/remotes/origin/main
       return false;
     } finally {
       setLoading(false);
@@ -185,22 +201,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     password: string,
     firstName: string,
     lastName: string,
+<<<<<<< HEAD
+    phone?: string
+=======
     phone: string,
     address: string
+>>>>>>> refs/remotes/origin/main
   ): Promise<boolean> => {
     try {
       setLoading(true);
       updateLastActivity();
 
+<<<<<<< HEAD
+      const response = await httpClient.post<{ success: boolean; data: { user: User; token: string } }>(
+=======
       const response = await httpClient.post<{ success: boolean; data: { user: User; token: string }; error?: string }>(
+>>>>>>> refs/remotes/origin/main
         '/mobile-auth/signup',
         {
           email: email.toLowerCase().trim(),
           password,
           first_name: firstName.trim(),
           last_name: lastName.trim(),
+<<<<<<< HEAD
+          phone: phone?.trim() || '',
+=======
           phone: phone.trim(),
           address: address.trim(),
+>>>>>>> refs/remotes/origin/main
         }
       );
 
@@ -216,6 +244,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         secureLog('info', 'Sign up successful', { email: userData.email });
         return true;
       } else {
+<<<<<<< HEAD
+        Alert.alert('Sign Up Failed', 'Failed to create account. Please try again.');
+        return false;
+      }
+    } catch (error) {
+      secureLog('error', 'Sign up error', { error, email });
+      Alert.alert('Error', 'Failed to create account. Please try again.');
+=======
         // Handle specific signup errors
         const errorMessage = response.error || 'Failed to create account';
         Alert.alert(
@@ -254,6 +290,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           [{ text: 'OK', style: 'default' }]
         );
       }
+>>>>>>> refs/remotes/origin/main
       return false;
     } finally {
       setLoading(false);

@@ -21,7 +21,11 @@ const adminBookingsRoutes = require('./routes/adminBookings');
 const uploadRoutes = require('./routes/upload');
 const cartRoutes = require('./routes/cart');
 const profileRoutes = require('./routes/profile');
+<<<<<<< HEAD
+const orderRoutes = require('./routes/orders');
+=======
 // const orderRoutes = require('./routes/orders'); // Removed - functionality moved to serviceBookings
+>>>>>>> refs/remotes/origin/main
 const serviceBookingRoutes = require('./routes/serviceBookings');
 const serviceOptionsRoutes = require('./routes/serviceOptions');
 const serviceVariantsRoutes = require('./routes/serviceVariants');
@@ -96,7 +100,11 @@ app.use('/api/admin/bookings', adminBookingsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/profile', profileRoutes);
+<<<<<<< HEAD
+app.use('/api/orders', orderRoutes);
+=======
 // app.use('/api/orders', orderRoutes); // Removed - functionality moved to serviceBookings
+>>>>>>> refs/remotes/origin/main
 app.use('/api/service-bookings', serviceBookingRoutes);
 app.use('/api/service-options', serviceOptionsRoutes);
 app.use('/api/service-variants', serviceVariantsRoutes);

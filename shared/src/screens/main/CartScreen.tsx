@@ -1,5 +1,9 @@
 import React from 'react';
+<<<<<<< HEAD
+import { View, ScrollView, StyleSheet, RefreshControl, Alert } from 'react-native';
+=======
 import { View, ScrollView, StyleSheet, RefreshControl, Alert, Platform } from 'react-native';
+>>>>>>> refs/remotes/origin/main
 import { Text, Card, Button, Chip, Divider, useTheme, IconButton, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../../components/AppHeader';
@@ -73,6 +77,12 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <AppHeader title="Cart" />
 
+<<<<<<< HEAD
+      <ScrollView 
+        style={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={refreshCart} />
+=======
       {/* Manual Refresh Button */}
       <View style={styles.refreshButtonContainer}>
         <Button
@@ -107,6 +117,7 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
             title="Pull to refresh"
             titleColor={theme.colors.onSurface}
           />
+>>>>>>> refs/remotes/origin/main
         }
       >
         {/* Cart Items */}
@@ -174,11 +185,35 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
               Order Summary
             </Text>
             <View style={styles.summaryRow}>
+<<<<<<< HEAD
+              <Text variant="bodyLarge" style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>
+                Subtotal
+              </Text>
+              <Text variant="bodyLarge" style={[styles.summaryValue, { color: theme.colors.onSurface }]}>
+                €{(cartSummary?.totalPrice || 0).toFixed(2)}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text variant="bodyLarge" style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>
+                Service Fee
+              </Text>
+              <Text variant="bodyLarge" style={[styles.summaryValue, { color: theme.colors.onSurface }]}>
+                €5.99
+              </Text>
+            </View>
+            <Divider style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+=======
+>>>>>>> refs/remotes/origin/main
               <Text variant="titleLarge" style={[styles.totalLabel, { color: theme.colors.onSurface }]}>
                 Total
               </Text>
               <Text variant="titleLarge" style={[styles.totalValue, { color: theme.colors.primary }]}>
+<<<<<<< HEAD
+                €{((cartSummary?.totalPrice || 0) + 5.99).toFixed(2)}
+=======
                 €{(cartSummary?.totalPrice || 0).toFixed(2)}
+>>>>>>> refs/remotes/origin/main
               </Text>
             </View>
           </Card.Content>
@@ -239,6 +274,9 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+<<<<<<< HEAD
+    padding: 16,
+=======
   },
   scrollContent: {
     padding: 16,
@@ -253,6 +291,7 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     alignSelf: 'flex-start',
+>>>>>>> refs/remotes/origin/main
   },
   cartItemCard: {
     marginBottom: 12,

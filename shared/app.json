@@ -4,18 +4,43 @@
     "slug": "deepclean-mobile-hub",
     "version": "1.0.0",
     "orientation": "portrait",
+<<<<<<< HEAD
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+=======
     "icon": "./assets/appstore.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/appstore.png",
       "resizeMode": "contain",
       "backgroundColor": "#2d5016"
+>>>>>>> refs/remotes/origin/main
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
+<<<<<<< HEAD
+      "bundleIdentifier": "com.deepcleanhub.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.deepcleanhub.mobile"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font"
+=======
       "bundleIdentifier": "com.deepcleanhub.mobile",
       "infoPlist": {
         "UIBackgroundModes": ["background-fetch", "background-processing"]
@@ -46,6 +71,7 @@
           "defaultChannel": "default"
         }
       ]
+>>>>>>> refs/remotes/origin/main
     ],
     "extra": {
       "eas": {

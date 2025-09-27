@@ -42,7 +42,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
+<<<<<<< HEAD
+=======
   const [isLoginFailed, setIsLoginFailed] = useState(false);
+>>>>>>> refs/remotes/origin/main
 
   const validateForm = useCallback(() => {
     const newErrors = { email: '', password: '' };
@@ -64,7 +67,11 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     } else {
       const passwordValidation = validatePassword(formData.password);
       if (!passwordValidation.isValid) {
+<<<<<<< HEAD
+        newErrors.password = passwordValidation.errors[0];
+=======
         newErrors.password = passwordValidation.errors[0] || 'Invalid password';
+>>>>>>> refs/remotes/origin/main
         isValid = false;
       }
     }
@@ -79,24 +86,34 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+<<<<<<< HEAD
+  }, [errors]);
+=======
     
     // Clear login failed state when user starts typing
     if (isLoginFailed) {
       setIsLoginFailed(false);
     }
   }, [errors, isLoginFailed]);
+>>>>>>> refs/remotes/origin/main
 
   const handleLogin = useCallback(async () => {
     if (!validateForm()) return;
 
+<<<<<<< HEAD
+=======
     setIsLoginFailed(false); // Reset login failed state
+>>>>>>> refs/remotes/origin/main
     const success = await signIn(formData.email.trim(), formData.password);
     if (success) {
       // Navigation will be handled by the auth context
       console.log('Login successful');
+<<<<<<< HEAD
+=======
       setIsLoginFailed(false);
     } else {
       setIsLoginFailed(true);
+>>>>>>> refs/remotes/origin/main
     }
   }, [formData, validateForm, signIn]);
 
@@ -230,6 +247,8 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 {loading ? 'Signing In...' : 'Sign In'}
               </Button>
 
+<<<<<<< HEAD
+=======
               {/* Login Failed Message */}
               {isLoginFailed && (
                 <View style={styles.errorContainer}>
@@ -242,6 +261,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
               )}
 
+>>>>>>> refs/remotes/origin/main
               {/* Sign Up Link */}
               <View style={styles.signUpContainer}>
                 <Text 
@@ -345,6 +365,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 4,
   },
+<<<<<<< HEAD
+=======
   errorContainer: {
     marginTop: 12,
     paddingHorizontal: 16,
@@ -354,6 +376,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#d32f2f',
   },
+>>>>>>> refs/remotes/origin/main
   forgotPasswordButton: {
     alignSelf: 'flex-end',
     marginBottom: 16,

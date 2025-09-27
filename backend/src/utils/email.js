@@ -2,6 +2,12 @@ const nodemailer = require('nodemailer');
 
 // Create transporter for email sending
 const createTransporter = () => {
+<<<<<<< HEAD
+  return nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: false, // true for 465, false for other ports
+=======
   // Check if AWS SES is configured
   if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
     const AWS = require('aws-sdk');
@@ -21,6 +27,7 @@ const createTransporter = () => {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT) || 587,
     secure: process.env.SMTP_SECURE === 'true',
+>>>>>>> refs/remotes/origin/main
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS

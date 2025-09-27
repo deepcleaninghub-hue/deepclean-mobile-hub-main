@@ -232,6 +232,25 @@ const insertDefaultServiceOptions = async () => {
     
     // House Moving Options
     {
+<<<<<<< HEAD
+      id: 'moving-local',
+      title: 'Local House Moving',
+      description: 'Complete local moving service within the city',
+      service_id: 'house-moving',
+      price: 150,
+      duration: '4-6 hours',
+      features: ['Furniture disassembly', 'Packing assistance', 'Transportation', 'Reassembly'],
+      is_active: true
+    },
+    {
+      id: 'moving-long-distance',
+      title: 'Long Distance Moving',
+      description: 'Complete long distance moving service with packing and transport',
+      service_id: 'house-moving',
+      price: 300,
+      duration: '8-12 hours',
+      features: ['Complete packing', 'Furniture protection', 'Long distance transport', 'Unpacking assistance'],
+=======
       id: 'house-moving-with-lift',
       title: 'House Moving (With Lift)',
       description: 'Professional moving service with elevator access - €20/m²',
@@ -295,6 +314,7 @@ const insertDefaultServiceOptions = async () => {
       measurement_placeholder: 'Enter number of items',
       duration: '6-12 hours',
       features: ['Office furniture', 'IT equipment', 'Filing systems', 'Stair handling', 'Specialized equipment'],
+>>>>>>> refs/remotes/origin/main
       is_active: true
     },
     

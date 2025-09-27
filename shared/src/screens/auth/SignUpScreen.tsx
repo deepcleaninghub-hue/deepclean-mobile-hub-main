@@ -37,7 +37,10 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
     lastName: '',
     email: '',
     phone: '',
+<<<<<<< HEAD
+=======
     address: '',
+>>>>>>> refs/remotes/origin/main
     password: '',
     confirmPassword: '',
   });
@@ -46,7 +49,10 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
     lastName: '',
     email: '',
     phone: '',
+<<<<<<< HEAD
+=======
     address: '',
+>>>>>>> refs/remotes/origin/main
     password: '',
     confirmPassword: '',
   });
@@ -54,7 +60,11 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateForm = useCallback(() => {
+<<<<<<< HEAD
+    const newErrors = { firstName: '', lastName: '', email: '', phone: '', password: '', confirmPassword: '' };
+=======
     const newErrors = { firstName: '', lastName: '', email: '', phone: '', address: '', password: '', confirmPassword: '' };
+>>>>>>> refs/remotes/origin/main
     let isValid = true;
 
     // First name validation
@@ -80,15 +90,22 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
       isValid = false;
     }
 
+<<<<<<< HEAD
+    // Phone validation (optional)
+    if (formData.phone.trim() && !/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
+=======
     // Phone validation (required)
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone number is required';
       isValid = false;
     } else if (!/^[\+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
+>>>>>>> refs/remotes/origin/main
       newErrors.phone = 'Please enter a valid phone number';
       isValid = false;
     }
 
+<<<<<<< HEAD
+=======
     // Address validation (required)
     if (!formData.address.trim()) {
       newErrors.address = 'Address is required';
@@ -98,6 +115,7 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
       isValid = false;
     }
 
+>>>>>>> refs/remotes/origin/main
     // Password validation
     if (!formData.password.trim()) {
       newErrors.password = 'Password is required';
@@ -105,7 +123,11 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
     } else {
       const passwordValidation = validatePassword(formData.password);
       if (!passwordValidation.isValid) {
+<<<<<<< HEAD
+        newErrors.password = passwordValidation.errors[0];
+=======
         newErrors.password = passwordValidation.errors[0] || 'Invalid password';
+>>>>>>> refs/remotes/origin/main
         isValid = false;
       }
     }
@@ -139,8 +161,12 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
       formData.password,
       formData.firstName.trim(),
       formData.lastName.trim(),
+<<<<<<< HEAD
+      formData.phone.trim() || undefined
+=======
       formData.phone.trim(),
       formData.address.trim()
+>>>>>>> refs/remotes/origin/main
     );
     
     if (success) {
@@ -258,7 +284,11 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
               {/* Phone Input */}
               <View style={styles.inputContainer}>
                 <TextInput
+<<<<<<< HEAD
+                  label="Phone (Optional)"
+=======
                   label="Phone"
+>>>>>>> refs/remotes/origin/main
                   value={formData.phone}
                   onChangeText={(text) => handleInputChange('phone', text)}
                   mode="outlined"
@@ -276,6 +306,8 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
                 ) : null}
               </View>
 
+<<<<<<< HEAD
+=======
               {/* Address Input */}
               <View style={styles.inputContainer}>
                 <TextInput
@@ -299,6 +331,7 @@ export const SignUpScreen: React.FC<Props> = ({ navigation }) => {
                 ) : null}
               </View>
 
+>>>>>>> refs/remotes/origin/main
               {/* Password Input */}
               <View style={styles.inputContainer}>
                 <TextInput

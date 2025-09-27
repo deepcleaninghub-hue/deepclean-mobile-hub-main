@@ -4,30 +4,90 @@ const { protect, admin } = require('../middleware/auth');
 
 const router = express.Router();
 
+<<<<<<< HEAD
+// @desc    Get all services with their variants
+// @route   GET /api/services
+// @access  Public
+router.get('/', async (req, res) => {
+=======
 // @desc    Get all services for admin
 // @route   GET /api/services/admin
 // @access  Private/Admin
 router.get('/admin', [protect, admin], async (req, res) => {
+>>>>>>> refs/remotes/origin/main
   try {
-    const { data: services, error } = await supabase
+    const { category } = req.query;
+    
+    let query = supabase
       .from('services')
+<<<<<<< HEAD
+      .select(`
+        *,
+        service_variants (
+          id,
+          title,
+          description,
+          price,
+          duration,
+          features,
+          pricing_type,
+          unit_price,
+          unit_measure,
+          min_measurement,
+          max_measurement,
+          measurement_step,
+          measurement_placeholder,
+          display_order,
+          is_active
+        )
+      `)
+      .eq('is_active', true);
+
+    // Filter by category
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    const { data: services, error } = await query
+      .order('display_order', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching services:', error);
+=======
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching admin services:', error);
+>>>>>>> refs/remotes/origin/main
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch services'
       });
     }
 
+    // Filter out inactive variants and sort by display_order
+    const processedServices = services.map(service => ({
+      ...service,
+      service_variants: service.service_variants
+        .filter(variant => variant.is_active)
+        .sort((a, b) => a.display_order - b.display_order)
+    }));
+
     res.json({
       success: true,
+<<<<<<< HEAD
+      count: processedServices?.length || 0,
+      data: processedServices || []
+    });
+  } catch (error) {
+    console.error('Error in get services:', error);
+=======
       data: services || []
     });
   } catch (error) {
     console.error('Error fetching admin services:', error);
+>>>>>>> refs/remotes/origin/main
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -35,6 +95,8 @@ router.get('/admin', [protect, admin], async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
+=======
 // @desc    Get all services with their variants
 // @route   GET /api/services
 // @access  Public
@@ -104,6 +166,7 @@ router.get('/', async (req, res) => {
   }
 });
 
+>>>>>>> refs/remotes/origin/main
 // @desc    Get service by ID with variants
 // @route   GET /api/services/:id
 // @access  Public

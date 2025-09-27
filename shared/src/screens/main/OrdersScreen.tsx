@@ -11,7 +11,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../../components/AppHeader';
 import { useAuth } from '../../contexts/AuthContext';
+<<<<<<< HEAD
+import { serviceBookingAPI, ServiceBooking } from '../../services/serviceBookingAPI';
+=======
 import { serviceBookingAPI, ServiceBooking, BookingGroup } from '../../services/serviceBookingAPI';
+>>>>>>> refs/remotes/origin/main
 import { OrdersStackScreenProps } from '../../navigation/types';
 
 type Props = OrdersStackScreenProps<'OrdersMain'>;
@@ -21,7 +25,10 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const [scheduledBookings, setScheduledBookings] = useState<ServiceBooking[]>([]);
   const [completedBookings, setCompletedBookings] = useState<ServiceBooking[]>([]);
+<<<<<<< HEAD
+=======
   const [bookingGroups, setBookingGroups] = useState<BookingGroup[]>([]);
+>>>>>>> refs/remotes/origin/main
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'scheduled' | 'completed'>('scheduled');
@@ -35,6 +42,14 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
     
     try {
       setLoading(true);
+<<<<<<< HEAD
+      const [scheduled, completed] = await Promise.all([
+        serviceBookingAPI.getScheduledBookings(),
+        serviceBookingAPI.getCompletedBookings()
+      ]);
+      setScheduledBookings(scheduled);
+      setCompletedBookings(completed);
+=======
       const [scheduled, completed, groups] = await Promise.all([
         serviceBookingAPI.getScheduledBookings(),
         serviceBookingAPI.getCompletedBookings(),
@@ -44,6 +59,7 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
       setScheduledBookings(scheduled);
       setCompletedBookings(completed);
       setBookingGroups(groups);
+>>>>>>> refs/remotes/origin/main
     } catch (error) {
       console.error('Error loading bookings:', error);
       Alert.alert('Error', 'Failed to load bookings');
@@ -92,11 +108,19 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleBookingPress = (booking: ServiceBooking) => {
+<<<<<<< HEAD
+=======
     // Navigate to details for both individual bookings and booking groups
+>>>>>>> refs/remotes/origin/main
     navigation.navigate('OrderDetails', { orderId: booking.id });
   };
 
   const handleCancelBooking = async (bookingId: string) => {
+<<<<<<< HEAD
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking?',
+=======
     // Check if this is a booking group by looking at the booking data
     const booking = allBookings.find(b => b.id === bookingId);
     const isGroupBooking = booking?.is_group_booking;
@@ -104,6 +128,7 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
     Alert.alert(
       'Cancel Booking',
       `Are you sure you want to cancel this ${isGroupBooking ? 'multi-day booking' : 'booking'}?`,
+>>>>>>> refs/remotes/origin/main
       [
         { text: 'No', style: 'cancel' },
         {
@@ -111,11 +136,15 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
+<<<<<<< HEAD
+              await serviceBookingAPI.cancelBooking(bookingId);
+=======
               if (isGroupBooking) {
                 await serviceBookingAPI.cancelBookingGroup(bookingId);
               } else {
                 await serviceBookingAPI.cancelBooking(bookingId);
               }
+>>>>>>> refs/remotes/origin/main
               await loadBookings();
               Alert.alert('Success', 'Booking cancelled successfully');
             } catch (error) {
@@ -127,6 +156,9 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
+<<<<<<< HEAD
+  const currentBookings = activeTab === 'scheduled' ? scheduledBookings : completedBookings;
+=======
   // Convert booking groups to individual booking format for consistent UI
   const convertGroupToBooking = (group: BookingGroup): ServiceBooking => {
     // Parse the booking_dates array (it's stored as JSON string)
@@ -189,11 +221,15 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
   // Merge regular bookings with converted groups and sort by creation date
   const allBookings = [...(activeTab === 'scheduled' ? scheduledBookings : completedBookings), ...convertedGroups]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+>>>>>>> refs/remotes/origin/main
 
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader title="My Orders" />
+<<<<<<< HEAD
+=======
       
+>>>>>>> refs/remotes/origin/main
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -211,12 +247,20 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
             buttons={[
               {
                 value: 'scheduled',
+<<<<<<< HEAD
+                label: `Scheduled (${scheduledBookings.length})`,
+=======
                 label: `Scheduled (${scheduledBookings.length + bookingGroups.filter(g => g.status === 'scheduled').length})`,
+>>>>>>> refs/remotes/origin/main
                 icon: 'calendar-clock',
               },
               {
                 value: 'completed',
+<<<<<<< HEAD
+                label: `Completed (${completedBookings.length})`,
+=======
                 label: `Completed (${completedBookings.length + bookingGroups.filter(g => g.status === 'completed').length})`,
+>>>>>>> refs/remotes/origin/main
                 icon: 'check-circle',
               },
             ]}
@@ -229,7 +273,11 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.loadingContainer}>
             <Text>Loading bookings...</Text>
           </View>
+<<<<<<< HEAD
+        ) : currentBookings.length === 0 ? (
+=======
         ) : allBookings.length === 0 ? (
+>>>>>>> refs/remotes/origin/main
           <Card style={[styles.emptyCard, { backgroundColor: theme.colors.surface }]}>
             <Card.Content style={styles.emptyContent}>
               <Ionicons name="calendar-outline" size={64} color={theme.colors.onSurfaceVariant} />
@@ -253,8 +301,12 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
           </Card>
         ) : (
           <View style={styles.ordersContainer}>
+<<<<<<< HEAD
+            {(currentBookings || []).map((booking, index) => (
+=======
             {/* Render all bookings (both individual and converted groups) */}
             {allBookings.map((booking, index) => (
+>>>>>>> refs/remotes/origin/main
               <Card 
                 key={booking.id} 
                 style={[styles.orderCard, { backgroundColor: theme.colors.surface }]}
@@ -292,11 +344,14 @@ export const OrdersScreen: React.FC<Props> = ({ navigation }) => {
                     <View style={styles.serviceInfo}>
                       <Text variant="bodyMedium" style={[styles.serviceTitle, { color: theme.colors.onSurface }]}>
                         {booking.services?.title || 'Service'}
+<<<<<<< HEAD
+=======
                         {booking.is_multi_day && (
                           <Text variant="bodySmall" style={[styles.multiDayBadge, { color: theme.colors.primary }]}>
                             {' '}(Multi-day)
                           </Text>
                         )}
+>>>>>>> refs/remotes/origin/main
                       </Text>
                       <Text variant="bodySmall" style={[styles.serviceDate, { color: theme.colors.onSurfaceVariant }]}>
                         {formatDate(booking.booking_date)} at {formatTime(booking.booking_time)}
@@ -433,12 +488,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 4,
   },
+<<<<<<< HEAD
+=======
   multiDayBadge: {
     fontWeight: '600',
   },
   multiDayInfo: {
     marginBottom: 2,
   },
+>>>>>>> refs/remotes/origin/main
   serviceDate: {
     marginBottom: 2,
   },

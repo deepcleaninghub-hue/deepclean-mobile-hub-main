@@ -4,6 +4,15 @@
   "description": "A comprehensive mobile application for professional cleaning and moving services",
   "main": "index.js",
   "scripts": {
+<<<<<<< HEAD
+    "start": "concurrently \"npm run start:backend\" \"npm run start:android\" \"npm run start:ios\"",
+    "start:backend": "cd backend && npm start",
+    "start:android": "cd android-app && npx expo start",
+    "start:ios": "cd ios-app && npx expo start --port 8082",
+    "install:all": "npm install && cd backend && npm install && cd ../android-app && npm install && cd ../ios-app && npm install",
+    "build:android": "cd android-app && npx expo build:android",
+    "build:ios": "cd ios-app && npx expo build:ios",
+=======
     "start": "concurrently \"npm run start:backend\" \"npm run start:shared\" \"npm run start:admin\"",
     "start:backend": "cd backend && npm start",
     "start:shared": "cd shared && npx expo start --port 8081",
@@ -11,6 +20,7 @@
     "install:all": "npm install && cd backend && npm install && cd ../shared && npm install && cd ../admin-app && npm install",
     "build:shared": "cd shared && npx expo build:android",
     "build:admin": "cd admin-app && npx expo build:android",
+>>>>>>> refs/remotes/origin/main
     "test": "echo \"No tests specified\" && exit 0"
   },
   "keywords": [
@@ -40,5 +50,13 @@
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=8.0.0"
+<<<<<<< HEAD
+  },
+  "dependencies": {
+    "nodemon": "^2.0.20"
   }
 }
+=======
+  }
+}
+>>>>>>> refs/remotes/origin/main
