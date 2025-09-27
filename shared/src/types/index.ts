@@ -11,12 +11,8 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-<<<<<<< HEAD
-  phone?: string;
-=======
   phone: string; // Made required
   address: string; // Added required address field
->>>>>>> refs/remotes/origin/main
   isActive: boolean;
   emailVerified: boolean;
   lastLogin?: string;
@@ -125,8 +121,6 @@ export interface Booking {
   services: BookingService[];
   createdAt: string;
   updatedAt: string;
-<<<<<<< HEAD
-=======
   // Multi-day booking support
   isMultiDay?: boolean;
   parentBookingId?: string;
@@ -139,7 +133,6 @@ export interface BookingDate {
   date: string;
   time: string;
   id: string;
->>>>>>> refs/remotes/origin/main
 }
 
 export interface BookingService {
@@ -278,11 +271,7 @@ export interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<boolean>;
-<<<<<<< HEAD
-  signUp: (email: string, password: string, firstName: string, lastName: string, phone?: string) => Promise<boolean>;
-=======
   signUp: (email: string, password: string, firstName: string, lastName: string, phone: string, address: string) => Promise<boolean>;
->>>>>>> refs/remotes/origin/main
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<boolean>;
   updateUser: (updatedUser: User) => void;
@@ -299,11 +288,7 @@ export interface CartContextType {
   removeFromCart: (cartItemId: string) => Promise<boolean>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<boolean>;
   clearCart: () => Promise<boolean>;
-<<<<<<< HEAD
-  refreshCart: () => Promise<void>;
-=======
   refreshCart: (forceRefresh?: boolean) => Promise<void>;
->>>>>>> refs/remotes/origin/main
   refreshServiceCategories: () => Promise<void>;
   isServiceInCart: (serviceId: string) => boolean;
 }

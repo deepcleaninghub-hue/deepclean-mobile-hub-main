@@ -23,8 +23,6 @@ export interface ServiceBooking {
   actual_end_time?: string;
   created_at: string;
   updated_at: string;
-<<<<<<< HEAD
-=======
   // Multi-day booking support (legacy)
   is_multi_day?: boolean;
   parent_booking_id?: string;
@@ -40,7 +38,6 @@ export interface ServiceBooking {
     time: string;
     bookingId: string;
   }>;
->>>>>>> refs/remotes/origin/main
   services?: {
     id: string;
     title: string;
@@ -57,8 +54,6 @@ export interface ServiceBooking {
   };
 }
 
-<<<<<<< HEAD
-=======
 export interface BookingGroup {
   id: string;
   user_id: string;
@@ -101,10 +96,7 @@ export interface CreateServiceBookingData {
   service_id: string;
   booking_date: string;
   booking_time: string;
-<<<<<<< HEAD
-=======
   booking_dates?: Array<{ date: string; time: string }>;
->>>>>>> refs/remotes/origin/main
   duration_minutes: number;
   customer_name: string;
   customer_email: string;
@@ -248,8 +240,6 @@ class ServiceBookingAPI {
       throw error;
     }
   }
-<<<<<<< HEAD
-=======
 
   // ===== BOOKING GROUP API METHODS =====
 

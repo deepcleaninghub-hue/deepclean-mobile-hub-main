@@ -7,10 +7,7 @@ import {
   Alert,
   Modal,
   TextInput,
-<<<<<<< HEAD
-=======
   ScrollView,
->>>>>>> refs/remotes/origin/main
 } from 'react-native';
 import { Text, Card, Button, useTheme, Portal } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,10 +29,7 @@ interface ServiceCardProps {
   max_measurement?: number;
   measurement_step?: number;
   measurement_placeholder?: string;
-<<<<<<< HEAD
-=======
   service_id?: string;
->>>>>>> refs/remotes/origin/main
   compact?: boolean;
 }
 
@@ -54,10 +48,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   max_measurement,
   measurement_step,
   measurement_placeholder,
-<<<<<<< HEAD
-=======
   service_id,
->>>>>>> refs/remotes/origin/main
   compact = false
 }) => {
   const theme = useTheme();
@@ -65,9 +56,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   const { addToCart, isServiceInCart, loading } = useCart();
   const [showMeasurementModal, setShowMeasurementModal] = useState(false);
   const [measurement, setMeasurement] = useState('');
-<<<<<<< HEAD
-  const [calculatedPrice, setCalculatedPrice] = useState(0);
-=======
   const [distance, setDistance] = useState('');
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   
@@ -79,7 +67,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   
   // Debug logging
   console.log('ServiceCard Debug:', { service_id, isOfficeMoving, inputLabel });
->>>>>>> refs/remotes/origin/main
 
   const handleViewService = () => {
     Alert.alert('Service Details', `Viewing details for ${title}`);
@@ -121,11 +108,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
   const handleMeasurementChange = (value: string) => {
     setMeasurement(value);
-<<<<<<< HEAD
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue) && unit_price) {
-      setCalculatedPrice(numValue * unit_price);
-=======
     calculatePrice(value, distance);
   };
 
@@ -158,7 +140,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       
       console.log('Price Calculation:', { labour, transport, subtotal, tax, total });
       setCalculatedPrice(total);
->>>>>>> refs/remotes/origin/main
     } else {
       setCalculatedPrice(0);
     }
@@ -166,11 +147,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
   const handleConfirmMeasurement = async () => {
     const numMeasurement = parseFloat(measurement);
-<<<<<<< HEAD
-    
-    if (isNaN(numMeasurement) || numMeasurement <= 0) {
-      Alert.alert('Invalid Input', 'Please enter a valid measurement');
-=======
     const numDistance = parseFloat(distance);
     
     if (isNaN(numMeasurement) || numMeasurement <= 0) {
@@ -180,25 +156,16 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 
     if (isNaN(numDistance) || numDistance <= 0) {
       Alert.alert('Invalid Input', 'Please enter a valid distance');
->>>>>>> refs/remotes/origin/main
       return;
     }
 
     if (min_measurement && numMeasurement < min_measurement) {
-<<<<<<< HEAD
-      Alert.alert('Invalid Input', `Minimum measurement is ${min_measurement} ${unit_measure}`);
-=======
       Alert.alert('Invalid Input', `Minimum ${isOfficeMoving ? 'items' : 'area'} is ${min_measurement} ${unit_measure}`);
->>>>>>> refs/remotes/origin/main
       return;
     }
 
     if (max_measurement && numMeasurement > max_measurement) {
-<<<<<<< HEAD
-      Alert.alert('Invalid Input', `Maximum measurement is ${max_measurement} ${unit_measure}`);
-=======
       Alert.alert('Invalid Input', `Maximum ${isOfficeMoving ? 'items' : 'area'} is ${max_measurement} ${unit_measure}`);
->>>>>>> refs/remotes/origin/main
       return;
     }
 
@@ -219,13 +186,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
       updatedAt: new Date().toISOString(),
     };
 
-<<<<<<< HEAD
-    const userInputs = {
-      measurement: numMeasurement,
-      unit_measure: unit_measure,
-      unit_price: unit_price
-    };
-=======
     const userInputs = isOfficeMoving 
       ? {
           items: numMeasurement,
@@ -239,15 +199,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           unit_measure: unit_measure,
           unit_price: unit_price
         };
->>>>>>> refs/remotes/origin/main
 
     await addToCart(service, calculatedPrice, userInputs);
     setShowMeasurementModal(false);
     setMeasurement('');
-<<<<<<< HEAD
-=======
     setDistance('');
->>>>>>> refs/remotes/origin/main
     setCalculatedPrice(0);
   };
 
@@ -317,11 +273,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           onDismiss={() => setShowMeasurementModal(false)}
           style={[styles.modal, { backgroundColor: theme.colors.surface }]}
         >
-<<<<<<< HEAD
-          <View style={styles.modalContent}>
-            <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
-              Enter Measurement
-=======
           <ScrollView 
             style={styles.modalScrollView}
             contentContainerStyle={styles.modalContent}
@@ -329,7 +280,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           >
             <Text variant="headlineSmall" style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
               {modalTitle}
->>>>>>> refs/remotes/origin/main
             </Text>
             
             <Text variant="bodyMedium" style={[styles.modalDescription, { color: theme.colors.onSurfaceVariant }]}>
@@ -337,14 +287,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
             </Text>
 
             <View style={styles.measurementInput}>
-<<<<<<< HEAD
-              <TextInput
-                style={[styles.textInput, { 
-                  borderColor: theme.colors.outline,
-                  color: theme.colors.onSurface 
-                }]}
-                placeholder={measurement_placeholder || `Enter area in ${unit_measure}`}
-=======
               <Text variant="bodyMedium" style={[styles.inputLabel, { color: theme.colors.onSurface }]}>
                 {inputLabel}
               </Text>
@@ -355,18 +297,11 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                   color: theme.colors.onSurface,
                 }]}
                 placeholder={inputPlaceholder}
->>>>>>> refs/remotes/origin/main
                 placeholderTextColor={theme.colors.onSurfaceVariant}
                 value={measurement}
                 onChangeText={handleMeasurementChange}
                 keyboardType="numeric"
                 autoFocus
-<<<<<<< HEAD
-              />
-              <Text variant="bodySmall" style={[styles.unitLabel, { color: theme.colors.onSurfaceVariant }]}>
-                {unit_measure}
-              </Text>
-=======
                 selectionColor={theme.colors.primary}
               />
             </View>
@@ -388,18 +323,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 keyboardType="numeric"
                 selectionColor={theme.colors.primary}
               />
->>>>>>> refs/remotes/origin/main
             </View>
 
             {calculatedPrice > 0 && (
               <View style={styles.priceCalculation}>
-<<<<<<< HEAD
-                <Text variant="bodyMedium" style={[styles.calculationText, { color: theme.colors.onSurface }]}>
-                  {measurement} {unit_measure} × €{unit_price?.toFixed(2)} = 
-                </Text>
-                <Text variant="titleLarge" style={[styles.totalPrice, { color: theme.colors.primary }]}>
-                  €{calculatedPrice.toFixed(2)}
-=======
                 <Text variant="bodySmall" style={[styles.calculationText, { color: theme.colors.onSurface }]}>
                   {isOfficeMoving ? 'Items' : 'Area'}: {measurement} {isOfficeMoving ? 'items' : 'm²'} × €{unit_price?.toFixed(2)} = €{(parseFloat(measurement) * (unit_price || 0)).toFixed(2)}
                 </Text>
@@ -414,7 +341,6 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 </Text>
                 <Text variant="titleLarge" style={[styles.totalPrice, { color: theme.colors.primary }]}>
                   Total: €{calculatedPrice.toFixed(2)}
->>>>>>> refs/remotes/origin/main
                 </Text>
               </View>
             )}
@@ -430,21 +356,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               <Button
                 mode="contained"
                 onPress={handleConfirmMeasurement}
-<<<<<<< HEAD
-                disabled={!measurement || calculatedPrice <= 0}
-=======
                 disabled={!measurement || !distance || calculatedPrice <= 0}
->>>>>>> refs/remotes/origin/main
                 style={styles.modalButton}
               >
                 Add to Cart
               </Button>
             </View>
-<<<<<<< HEAD
-          </View>
-=======
           </ScrollView>
->>>>>>> refs/remotes/origin/main
         </Modal>
       </Portal>
     </Card>
@@ -553,11 +471,6 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 12,
     padding: 0,
-<<<<<<< HEAD
-  },
-  modalContent: {
-    padding: 24,
-=======
     maxHeight: '80%',
   },
   modalScrollView: {
@@ -566,30 +479,18 @@ const styles = StyleSheet.create({
   modalContent: {
     padding: 24,
     flexGrow: 1,
->>>>>>> refs/remotes/origin/main
   },
   modalTitle: {
     fontWeight: '600',
     marginBottom: 8,
     textAlign: 'center',
-<<<<<<< HEAD
-=======
     marginTop: 8,
->>>>>>> refs/remotes/origin/main
   },
   modalDescription: {
     textAlign: 'center',
     marginBottom: 24,
   },
   measurementInput: {
-<<<<<<< HEAD
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  textInput: {
-    flex: 1,
-=======
     marginBottom: 20,
   },
   inputLabel: {
@@ -597,18 +498,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   textInput: {
->>>>>>> refs/remotes/origin/main
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
-<<<<<<< HEAD
-    marginRight: 8,
-=======
     minHeight: 48,
     width: '100%',
->>>>>>> refs/remotes/origin/main
   },
   unitLabel: {
     fontWeight: '500',
@@ -618,10 +514,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.05)',
     borderRadius: 8,
     padding: 16,
-<<<<<<< HEAD
-=======
     marginTop: 8,
->>>>>>> refs/remotes/origin/main
     marginBottom: 24,
     alignItems: 'center',
   },

@@ -310,11 +310,7 @@ const ServicesScreen = ({ navigation }: Props) => {
                     id={option.id || ''}
                     title={option.title || ''}
                     description={option.description || ''}
-<<<<<<< HEAD
-                    image={option.image || 'https://via.placeholder.com/300x200'}
-=======
                     image={option.services?.image_url || 'https://via.placeholder.com/300x200'}
->>>>>>> refs/remotes/origin/main
                     price={option.price}
                     duration={option.duration || ''}
                     category={option.services?.category || ''}
@@ -325,10 +321,7 @@ const ServicesScreen = ({ navigation }: Props) => {
                     max_measurement={option.max_measurement}
                     measurement_step={option.measurement_step}
                     measurement_placeholder={option.measurement_placeholder}
-<<<<<<< HEAD
-=======
                     service_id={option.service_id}
->>>>>>> refs/remotes/origin/main
                     compact
                   />
                 </View>
@@ -351,11 +344,7 @@ const ServicesScreen = ({ navigation }: Props) => {
                 id={option.id || ''}
                 title={option.title || ''}
                 description={option.description || ''}
-<<<<<<< HEAD
-                image={option.image || 'https://via.placeholder.com/300x200'}
-=======
                 image={option.services?.image_url || 'https://via.placeholder.com/300x200'}
->>>>>>> refs/remotes/origin/main
                 price={option.price}
                 duration={option.duration || ''}
                 category={option.services?.category || ''}
@@ -366,10 +355,7 @@ const ServicesScreen = ({ navigation }: Props) => {
                 max_measurement={option.max_measurement}
                 measurement_step={option.measurement_step}
                 measurement_placeholder={option.measurement_placeholder}
-<<<<<<< HEAD
-=======
                 service_id={option.service_id}
->>>>>>> refs/remotes/origin/main
                 compact
               />
             </View>

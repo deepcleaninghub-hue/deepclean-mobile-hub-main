@@ -5,18 +5,10 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-<<<<<<< HEAD
-
-// Simple base URL configuration - matches original apps
-const BASE_URL = __DEV__ 
-  ? 'http://192.168.29.65:5001/api'
-  : 'https://api.deepcleanhub.com/api';
-=======
 import { Alert } from 'react-native';
 
 // Simple base URL configuration - matches original apps
 const BASE_URL = 'http://192.168.29.65:5001/api';
->>>>>>> refs/remotes/origin/main
 
 interface HttpOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -25,8 +17,6 @@ interface HttpOptions {
 }
 
 class SimpleHttpClient {
-<<<<<<< HEAD
-=======
   private logoutCallback: (() => void) | null = null;
 
   // Method to set logout callback
@@ -63,7 +53,6 @@ class SimpleHttpClient {
     }
   }
 
->>>>>>> refs/remotes/origin/main
   private async request<T>(endpoint: string, options: HttpOptions = {}): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
     
@@ -101,8 +90,6 @@ class SimpleHttpClient {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('HTTP error response:', errorData);
-<<<<<<< HEAD
-=======
         
         // Handle JWT signature errors by triggering logout
         if (response.status === 401 && errorData.error && errorData.error.includes('Token verification failed')) {
@@ -110,7 +97,6 @@ class SimpleHttpClient {
           await this.triggerLogout();
         }
         
->>>>>>> refs/remotes/origin/main
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
 

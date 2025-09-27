@@ -12,11 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../../components/AppHeader';
 import { useAuth } from '../../contexts/AuthContext';
-<<<<<<< HEAD
-import { serviceBookingAPI, ServiceBooking } from '../../services/serviceBookingAPI';
-=======
 import { serviceBookingAPI, ServiceBooking, BookingGroup } from '../../services/serviceBookingAPI';
->>>>>>> refs/remotes/origin/main
 import { OrdersStackScreenProps } from '../../navigation/types';
 
 type Props = OrdersStackScreenProps<'OrderDetails'>;
@@ -55,8 +51,6 @@ interface Order {
     currentLocation?: string;
     lastUpdate: string;
   };
-<<<<<<< HEAD
-=======
   // Multi-day booking support
   isMultiDay?: boolean;
   totalDays?: number;
@@ -65,25 +59,17 @@ interface Order {
     time: string;
     bookingId: string;
   }>;
->>>>>>> refs/remotes/origin/main
 }
 
 export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const theme = useTheme();
   const { user } = useAuth();
   const { orderId } = route.params;
-<<<<<<< HEAD
-  const [order, setOrder] = useState<Order | ServiceBooking | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const isBooking = !!(order as ServiceBooking)?.booking_date;
-=======
   const [order, setOrder] = useState<Order | ServiceBooking | BookingGroup | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const isBooking = !!(order as ServiceBooking)?.booking_date;
   const isBookingGroup = !!(order as BookingGroup)?.group_name;
->>>>>>> refs/remotes/origin/main
 
   useEffect(() => {
     loadOrderDetails();
@@ -92,12 +78,6 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const loadOrderDetails = async () => {
     try {
       setLoading(true);
-<<<<<<< HEAD
-      // For now, we'll use the serviceBookingAPI to get booking details
-      // In a real app, you might have a separate orderAPI
-      const bookingDetails = await serviceBookingAPI.getBookingById(orderId);
-      setOrder(bookingDetails);
-=======
       
       // Try to get as individual booking first
       try {
@@ -122,7 +102,6 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
       // If neither worked, show error
       throw new Error('Booking not found');
       
->>>>>>> refs/remotes/origin/main
     } catch (error) {
       console.error('Error loading order details:', error);
       Alert.alert('Error', 'Failed to load order details');
@@ -193,11 +172,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
   const handleCancelOrder = async () => {
     if (!order) return;
     
-<<<<<<< HEAD
-    const itemType = isBooking ? 'booking' : 'order';
-=======
     const itemType = isBooking || isBookingGroup ? 'booking' : 'order';
->>>>>>> refs/remotes/origin/main
     Alert.alert(
       `Cancel ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`,
       `Are you sure you want to cancel this ${itemType}? This action cannot be undone.`,
@@ -247,11 +222,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-<<<<<<< HEAD
-  const canCancel = isBooking ? order.status === 'scheduled' : (order.status === 'pending' || order.status === 'confirmed');
-=======
   const canCancel = isBooking || isBookingGroup ? order.status === 'scheduled' : (order.status === 'pending' || order.status === 'confirmed');
->>>>>>> refs/remotes/origin/main
   // Reschedule disabled
 
   return (
@@ -295,11 +266,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.statusSteps}>
               <View style={[styles.statusStep, order.status !== 'cancelled' && (order.status === 'scheduled' || order.status === 'pending' || order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? styles.activeStep : styles.inactiveStep]}>
                 <Ionicons name="checkmark-circle" size={20} color={order.status !== 'cancelled' && (order.status === 'scheduled' || order.status === 'pending' || order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? '#4CAF50' : '#E0E0E0'} />
-<<<<<<< HEAD
-                <Text variant="bodySmall" style={styles.stepText}>{isBooking ? 'Booking Placed' : 'Order Placed'}</Text>
-=======
                 <Text variant="bodySmall" style={styles.stepText}>{isBooking || isBookingGroup ? 'Booking Placed' : 'Order Placed'}</Text>
->>>>>>> refs/remotes/origin/main
               </View>
               
               <View style={[styles.statusStep, order.status !== 'cancelled' && (order.status === 'confirmed' || order.status === 'in_progress' || order.status === 'completed') ? styles.activeStep : styles.inactiveStep]}>
@@ -361,15 +328,6 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             
             <View style={styles.infoRow}>
               <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
-<<<<<<< HEAD
-                {isBooking ? 'Booking Number' : 'Order Number'}
-              </Text>
-              <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-                #{isBooking ? order.id.slice(-8) : (order as Order).orderNumber}
-              </Text>
-            </View>
-            
-=======
                 {isBooking || isBookingGroup ? 'Booking Number' : 'Order Number'}
               </Text>
               <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
@@ -378,17 +336,12 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
             
             {/* Service Date and Time */}
->>>>>>> refs/remotes/origin/main
             <View style={styles.infoRow}>
               <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
                 Service Date
               </Text>
               <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-<<<<<<< HEAD
-                {formatDate(isBooking ? (order as ServiceBooking).booking_date : (order as Order).serviceDate)}
-=======
                 {formatDate(isBooking ? (order as ServiceBooking).booking_date : isBookingGroup ? (order as BookingGroup).created_at : (order as Order).serviceDate)}
->>>>>>> refs/remotes/origin/main
               </Text>
             </View>
             
@@ -397,11 +350,6 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 Service Time
               </Text>
               <Text variant="bodyMedium" style={[styles.infoValue, { color: theme.colors.onSurface }]}>
-<<<<<<< HEAD
-                {formatTime(isBooking ? (order as ServiceBooking).booking_time : (order as Order).serviceTime)}
-              </Text>
-            </View>
-=======
                 {formatTime(isBooking ? (order as ServiceBooking).booking_time : isBookingGroup ? '00:00' : (order as Order).serviceTime)}
               </Text>
             </View>
@@ -417,18 +365,13 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                 </Text>
               </View>
             )}
->>>>>>> refs/remotes/origin/main
             
             <View style={styles.infoRow}>
               <Text variant="bodyMedium" style={[styles.infoLabel, { color: theme.colors.onSurfaceVariant }]}>
                 Total Amount
               </Text>
               <Text variant="titleMedium" style={[styles.infoValue, { color: theme.colors.primary, fontWeight: 'bold' }]}>
-<<<<<<< HEAD
-                €{(isBooking ? (order as ServiceBooking).total_amount : (order as Order).totalAmount || 0).toFixed(2)}
-=======
                 €{(isBooking ? (order as ServiceBooking).total_amount : isBookingGroup ? (order as BookingGroup).total_amount : (order as Order).totalAmount || 0).toFixed(2)}
->>>>>>> refs/remotes/origin/main
               </Text>
             </View>
           </Card.Content>
@@ -445,15 +388,9 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.addressContainer}>
               <Ionicons name="location-outline" size={20} color={theme.colors.onSurfaceVariant} />
               <View style={styles.addressText}>
-<<<<<<< HEAD
-                {isBooking ? (
-                  <Text variant="bodyMedium" style={[styles.addressLine, { color: theme.colors.onSurface }]}>
-                    {(order as ServiceBooking).service_address}
-=======
                 {isBooking || isBookingGroup ? (
                   <Text variant="bodyMedium" style={[styles.addressLine, { color: theme.colors.onSurface }]}>
                     {isBookingGroup ? (order as BookingGroup).service_address : (order as ServiceBooking).service_address}
->>>>>>> refs/remotes/origin/main
                   </Text>
                 ) : (
                   <>
@@ -500,8 +437,6 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   €{((order as ServiceBooking).total_amount || 0).toFixed(2)}
                 </Text>
               </View>
-<<<<<<< HEAD
-=======
             ) : isBookingGroup ? (
               <View style={styles.serviceItem}>
                 <View style={styles.serviceInfo}>
@@ -522,7 +457,6 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
                   €{((order as BookingGroup).total_amount || 0).toFixed(2)}
                 </Text>
               </View>
->>>>>>> refs/remotes/origin/main
             ) : (
               ((order as Order).items || []).map((item, index) => (
                 <View key={index} style={styles.serviceItem}>
@@ -544,11 +478,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
         </Card>
 
         {/* Special Instructions */}
-<<<<<<< HEAD
-        {(isBooking ? (order as ServiceBooking).special_instructions : (order as Order).specialInstructions) && (
-=======
         {(isBooking ? (order as ServiceBooking).special_instructions : isBookingGroup ? (order as BookingGroup).special_instructions : (order as Order).specialInstructions) && (
->>>>>>> refs/remotes/origin/main
           <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
             <Card.Content>
               <Text variant="titleLarge" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
@@ -556,11 +486,7 @@ export const OrderDetailsScreen: React.FC<Props> = ({ navigation, route }) => {
               </Text>
               <Divider style={styles.divider} />
               <Text variant="bodyMedium" style={[styles.instructionsText, { color: theme.colors.onSurface }]}>
-<<<<<<< HEAD
-                {isBooking ? (order as ServiceBooking).special_instructions : (order as Order).specialInstructions}
-=======
                 {isBooking ? (order as ServiceBooking).special_instructions : isBookingGroup ? (order as BookingGroup).special_instructions : (order as Order).specialInstructions}
->>>>>>> refs/remotes/origin/main
               </Text>
             </Card.Content>
           </Card>
@@ -679,8 +605,6 @@ const styles = StyleSheet.create({
   infoValue: {
     fontWeight: '500',
   },
-<<<<<<< HEAD
-=======
   multiDaySection: {
     marginBottom: 12,
   },
@@ -703,7 +627,6 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 12,
   },
->>>>>>> refs/remotes/origin/main
   addressContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',

@@ -5,11 +5,7 @@
  * provider setup and error boundary.
  */
 
-<<<<<<< HEAD
-import React from 'react';
-=======
 import React, { useEffect } from 'react';
->>>>>>> refs/remotes/origin/main
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -21,10 +17,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import ErrorBoundary from './components/Base/ErrorBoundary';
 import { MainNavigator } from './navigation/MainNavigator';
-<<<<<<< HEAD
-=======
 import { NotificationProvider } from './components/NotificationProvider';
->>>>>>> refs/remotes/origin/main
 
 export default function App() {
   return (
@@ -34,19 +27,12 @@ export default function App() {
           <PaperProvider theme={theme}>
             <AuthProvider>
               <CartProvider>
-<<<<<<< HEAD
-                <NavigationContainer>
-                  <StatusBar style="auto" />
-                  <MainNavigator />
-                </NavigationContainer>
-=======
                 <NotificationProvider>
                   <NavigationContainer>
                     <StatusBar style="auto" />
                     <MainNavigator />
                   </NavigationContainer>
                 </NotificationProvider>
->>>>>>> refs/remotes/origin/main
               </CartProvider>
             </AuthProvider>
           </PaperProvider>

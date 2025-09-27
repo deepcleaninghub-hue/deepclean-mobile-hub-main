@@ -5,13 +5,9 @@ import {
   StyleSheet,
   Alert,
   RefreshControl,
-<<<<<<< HEAD
-} from 'react-native';
-=======
   Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
->>>>>>> refs/remotes/origin/main
 import { 
   Text, 
   Card, 
@@ -41,11 +37,8 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [formData, setFormData] = useState<UpdateProfileData>({});
   const [errors, setErrors] = useState<{[key: string]: string}>({});
-<<<<<<< HEAD
-=======
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
->>>>>>> refs/remotes/origin/main
 
   useEffect(() => {
     fetchProfile();
@@ -57,11 +50,8 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       const profileData = await profileAPI.getProfile();
       if (profileData) {
         setProfile(profileData);
-<<<<<<< HEAD
-=======
         const dobDate = profileData.date_of_birth ? new Date(profileData.date_of_birth) : new Date();
         setSelectedDate(dobDate);
->>>>>>> refs/remotes/origin/main
         setFormData({
           first_name: profileData.first_name || '',
           last_name: profileData.last_name || '',
@@ -90,11 +80,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-<<<<<<< HEAD
-  const handleInputChange = (field: keyof UpdateProfileData, value: string) => {
-=======
   const handleInputChange = (field: keyof UpdateProfileData, value: string | undefined) => {
->>>>>>> refs/remotes/origin/main
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -145,8 +131,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       newErrors.postal_code = 'Postal code must be at least 3 characters';
     }
 
-<<<<<<< HEAD
-=======
     // Date of birth validation
     if (formData.date_of_birth && formData.date_of_birth.length > 0) {
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -167,13 +151,10 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       }
     }
 
->>>>>>> refs/remotes/origin/main
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-<<<<<<< HEAD
-=======
   // Date picker handlers
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
@@ -194,7 +175,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     return date.toLocaleDateString('en-CA'); // YYYY-MM-DD format
   };
 
->>>>>>> refs/remotes/origin/main
   const handleSave = async () => {
     if (!validateForm()) {
       return;
@@ -247,10 +227,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
           lastName: result.data.last_name,
           email: result.data.email,
           phone: result.data.phone || '',
-<<<<<<< HEAD
-=======
           address: result.data.address || '',
->>>>>>> refs/remotes/origin/main
           isActive: true,
           emailVerified: true,
           createdAt: result.data.created_at,
@@ -369,16 +346,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
             />
             {errors.phone && <HelperText type="error">{errors.phone}</HelperText>}
 
-<<<<<<< HEAD
-            <TextInput
-              label="Date of Birth"
-              value={formData.date_of_birth || ''}
-              onChangeText={(text) => handleInputChange('date_of_birth', text)}
-              style={styles.input}
-              mode="outlined"
-              placeholder="YYYY-MM-DD"
-            />
-=======
             <View style={styles.dateInputContainer}>
               <Text variant="bodyMedium" style={[styles.dateLabel, { color: theme.colors.onSurface }]}>
                 Date of Birth
@@ -398,7 +365,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
                 </HelperText>
               )}
             </View>
->>>>>>> refs/remotes/origin/main
 
             <Text variant="bodyMedium" style={[styles.genderLabel, { color: theme.colors.onSurface }]}>
               Gender
@@ -518,8 +484,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
           </Card.Content>
         </Card>
       </ScrollView>
-<<<<<<< HEAD
-=======
 
       {/* Date Picker */}
       {showDatePicker && (
@@ -552,7 +516,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
           )}
         </View>
       )}
->>>>>>> refs/remotes/origin/main
     </SafeAreaView>
   );
 };
@@ -636,8 +599,6 @@ const styles = StyleSheet.create({
   buttonContent: {
     paddingVertical: 8,
   },
-<<<<<<< HEAD
-=======
   dateInputContainer: {
     marginBottom: 8,
   },
@@ -681,7 +642,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 8,
   },
->>>>>>> refs/remotes/origin/main
 });
 
 export default EditProfileScreen;

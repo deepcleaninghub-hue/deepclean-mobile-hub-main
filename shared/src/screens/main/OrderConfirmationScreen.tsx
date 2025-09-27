@@ -9,20 +9,12 @@ import {
 import { Text, Card, Button, useTheme, Divider, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-<<<<<<< HEAD
-import AppHeader from '../../components/AppHeader';
-import { CartStackScreenProps } from '../../navigation/types';
-import { emailAPI, OrderEmailData } from '../../services/emailAPI';
-import whatsappAPI from '../../services/whatsappAPI';
-import { useAuth } from '../../contexts/AuthContext';
-=======
 import * as Notifications from 'expo-notifications';
 import AppHeader from '../../components/AppHeader';
 import { CartStackScreenProps } from '../../navigation/types';
 import whatsappAPI from '../../services/whatsappAPI';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
->>>>>>> refs/remotes/origin/main
 
 type Props = CartStackScreenProps<'OrderConfirmation'>;
 
@@ -31,25 +23,16 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
   const { bookingId, orderData } = route.params || {};
   const [refreshing, setRefreshing] = useState(false);
-<<<<<<< HEAD
-  const [sendingEmails, setSendingEmails] = useState(false);
-  const [emailsSent, setEmailsSent] = useState(false);
-  const [whatsappStatus, setWhatsappStatus] = useState<'pending' | 'sending' | 'sent' | 'failed'>('pending');
-=======
   const [emailsSent, setEmailsSent] = useState(true); // Emails are sent during booking creation
   const [whatsappStatus, setWhatsappStatus] = useState<'pending' | 'sending' | 'sent' | 'failed'>('pending');
   const [notificationsScheduled, setNotificationsScheduled] = useState(false);
   const { scheduleBookingConfirmation, scheduleServiceReminder, isInitialized } = useNotifications();
->>>>>>> refs/remotes/origin/main
 
   const handleContinueShopping = () => {
     navigation.navigate('Services' as any);
   };
 
-<<<<<<< HEAD
-=======
 
->>>>>>> refs/remotes/origin/main
   const handleViewOrders = () => {
     navigation.navigate('Orders' as any);
   };
@@ -61,66 +44,6 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
     setRefreshing(false);
   };
 
-<<<<<<< HEAD
-  // Send confirmation emails when component mounts
-  useEffect(() => {
-    if (orderData && user && !emailsSent) {
-      sendOrderConfirmationEmails();
-    }
-  }, [orderData, user, emailsSent]);
-
-  const sendOrderConfirmationEmails = async () => {
-    if (!orderData || !user) return;
-
-    setSendingEmails(true);
-    
-    try {
-      // Prepare email data
-      const emailData: OrderEmailData = {
-        customerName: `${user.firstName} ${user.lastName}`,
-        customerEmail: user.email,
-        customerPhone: user.phone || 'Not provided',
-        orderId: bookingId || 'N/A',
-        orderDate: new Date().toLocaleDateString(),
-        serviceDate: orderData.service_date || 'N/A',
-        serviceTime: orderData.service_time || 'N/A',
-        totalAmount: orderData.total_amount || 0,
-        services: orderData.items?.map((item: any) => ({
-          name: item.service_title || 'Service',
-          price: `€${(item.calculated_price || 0).toFixed(2)}`
-        })) || [],
-        address: {
-          street_address: orderData.address?.street_address || 'N/A',
-          city: orderData.address?.city || 'N/A',
-          postal_code: orderData.address?.postal_code || 'N/A',
-          country: orderData.address?.country || 'N/A'
-        },
-        specialInstructions: orderData.address?.additional_notes
-      };
-
-      // Send emails
-      const result = await emailAPI.sendOrderConfirmationEmails(emailData);
-      
-      if (result.success) {
-        setEmailsSent(true);
-        // Check if emails were actually sent or just processed
-        if (result.results?.customer?.success || result.results?.admin?.success) {
-          console.log('Order confirmation emails sent successfully');
-        } else {
-          console.log('Email service not configured - emails not sent');
-        }
-
-        // WhatsApp integration optional; set to failed if not present
-        setWhatsappStatus('failed');
-      }
-    } catch (error) {
-      console.error('Error sending order confirmation emails:', error);
-      // Don't show error to user as this is not critical
-    } finally {
-      setSendingEmails(false);
-    }
-  };
-=======
   // Schedule notifications when order is confirmed (only once)
   useEffect(() => {
     console.log('🚨🚨🚨 NEW NOTIFICATION SYSTEM LOADED! 🚨🚨🚨');
@@ -164,7 +87,6 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [orderData, bookingId]);
 
 
->>>>>>> refs/remotes/origin/main
 
   return (
     <SafeAreaView style={styles.container}>
@@ -192,18 +114,7 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
             
             {/* Email Status */}
             <View style={styles.emailStatus}>
-<<<<<<< HEAD
-              {sendingEmails ? (
-                <View style={styles.emailStatusRow}>
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
-                  <Text variant="bodySmall" style={[styles.emailStatusText, { color: theme.colors.onSurfaceVariant }]}>
-                    Sending confirmation emails...
-                  </Text>
-                </View>
-              ) : emailsSent ? (
-=======
               {emailsSent ? (
->>>>>>> refs/remotes/origin/main
                 <View style={styles.emailStatusRow}>
                   <Ionicons name="checkmark-circle" size={16} color={theme.colors.primary} />
                   <Text variant="bodySmall" style={[styles.emailStatusText, { color: theme.colors.primary }]}>
@@ -346,10 +257,7 @@ const OrderConfirmationScreen: React.FC<Props> = ({ navigation, route }) => {
             Continue Shopping
           </Button>
         </View>
-<<<<<<< HEAD
-=======
 
->>>>>>> refs/remotes/origin/main
       </ScrollView>
     </SafeAreaView>
   );
