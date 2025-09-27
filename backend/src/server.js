@@ -43,6 +43,8 @@ const corsOptions = {
     'http://localhost:3000',
     'http://localhost:8081',
     'http://localhost:8082',
+    'http://13.211.76.43:8081',
+    'http://13.211.76.43:8082',
     'exp://192.168.29.65:8081',
     'exp://192.168.29.65:8082'
   ],
