@@ -1,4 +1,4 @@
-import { httpClient } from './simpleHttpClient';
+import { httpClient } from './httpClient';
 
 export interface WhatsAppMessageData {
   to: string;

@@ -34,7 +34,7 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  override componentDidCatch(error: Error, errorInfo: any) {
     secureLog('error', 'Error caught by boundary', { 
       error: error.message, 
       stack: error.stack,
@@ -58,7 +58,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    this.setState({ hasError: false });
   };
 
   render() {
@@ -67,7 +67,7 @@ class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      return <ErrorFallback onRetry={this.handleRetry} error={this.state.error} />;
+      return <ErrorFallback onRetry={this.handleRetry} error={this.state.error!} />;
     }
 
     return this.props.children;

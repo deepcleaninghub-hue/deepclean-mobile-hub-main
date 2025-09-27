@@ -295,7 +295,7 @@ class ServiceBookingAPI {
   // Cancel booking group
   async cancelBookingGroup(groupId: string, reason?: string): Promise<boolean> {
     try {
-      const response = await httpClient.delete<{success: boolean, message: string}>(`${this.baseUrl}/groups/${groupId}`, { reason });
+      const response = await httpClient.delete<{success: boolean, message: string}>(`${this.baseUrl}/groups/${groupId}`);
       if (!response.success) {
         throw new Error(response.message || 'Failed to cancel booking group');
       }

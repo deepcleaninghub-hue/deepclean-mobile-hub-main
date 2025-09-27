@@ -75,7 +75,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "your-project-id-here"
+        "projectId": "deepclean-mobile-hub"
       }
     }
   }
