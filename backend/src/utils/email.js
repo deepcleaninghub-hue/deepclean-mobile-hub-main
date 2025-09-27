@@ -1,182 +1,239 @@
 const nodemailer = require('nodemailer');
 
-// Create transporter
+// Create transporter for email sending
 const createTransporter = () => {
+<<<<<<< HEAD
   return nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
     secure: false, // true for 465, false for other ports
+=======
+  // Check if AWS SES is configured
+  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+    const AWS = require('aws-sdk');
+    const ses = new AWS.SES({
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      region: process.env.AWS_REGION || 'us-east-1'
+    });
+
+    return nodemailer.createTransport({
+      SES: { ses, aws: AWS }
+    });
+  }
+
+  // Fallback to SMTP
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true',
+>>>>>>> refs/remotes/origin/main
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    }
   });
 };
 
-// Send inquiry notification email
-const sendInquiryEmail = async (inquiryData) => {
+// Send email function
+const sendEmail = async (to, subject, html, text) => {
   try {
     const transporter = createTransporter();
+    const fromEmail = process.env.AWS_FROM_EMAIL || process.env.SMTP_FROM_EMAIL;
 
-    const servicesList = inquiryData.services.map(service => 
-      `- ${service.name}: ${service.price}`
-    ).join('\n');
-
-    const emailContent = `
-      <h2>New Customer Inquiry Received</h2>
-      
-      <h3>Inquiry Details:</h3>
-      <p><strong>Inquiry ID:</strong> ${inquiryData.inquiryId}</p>
-      <p><strong>Customer Name:</strong> ${inquiryData.customerName}</p>
-      <p><strong>Customer Email:</strong> ${inquiryData.customerEmail}</p>
-      <p><strong>Customer Phone:</strong> ${inquiryData.customerPhone}</p>
-      
-      <h3>Services Requested:</h3>
-      <ul>
-        ${servicesList}
-      </ul>
-      
-      <p><strong>Total Amount:</strong> €${inquiryData.totalAmount}</p>
-      
-      ${inquiryData.message ? `<h3>Customer Message:</h3><p>${inquiryData.message}</p>` : ''}
-      
-      ${inquiryData.preferredDate ? `<p><strong>Preferred Date:</strong> ${inquiryData.preferredDate}</p>` : ''}
-      ${inquiryData.serviceArea ? `<p><strong>Service Area:</strong> ${inquiryData.serviceArea}</p>` : ''}
-      
-      <p><strong>Received:</strong> ${new Date().toLocaleString()}</p>
-      
-      <hr>
-      <p><em>This is an automated notification from Deep Cleaning Hub.</em></p>
-    `;
+    if (!fromEmail) {
+      throw new Error('No from email configured');
+    }
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER, // Send to admin email
-      subject: `New Inquiry: ${inquiryData.customerName} - ${inquiryData.services.length} service(s)`,
-      html: emailContent,
+      from: fromEmail,
+      to: to,
+      subject: subject,
+      html: html,
+      text: text
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Inquiry email sent:', info.messageId);
-    return info;
+    const result = await transporter.sendMail(mailOptions);
+    return {
+      success: true,
+      messageId: result.messageId
+    };
   } catch (error) {
-    console.error('❌ Error sending inquiry email:', error);
-    throw error;
+    console.error('Error sending email:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 };
 
-// Send customer confirmation email
-const sendCustomerConfirmation = async (customerEmail, customerName, inquiryId) => {
-  try {
-    const transporter = createTransporter();
+// Send order confirmation email
+const sendOrderConfirmation = async (orderData) => {
+  const { customerEmail, customerName, orderId, serviceDate, serviceTime, totalAmount, services, address } = orderData;
 
-    const emailContent = `
-      <h2>Thank you for your inquiry!</h2>
-      
-      <p>Dear ${customerName},</p>
-      
-      <p>We have received your inquiry and our team will contact you within 2-4 hours to discuss your cleaning needs.</p>
-      
-      <p><strong>Your inquiry reference:</strong> ${inquiryId}</p>
-      
-      <h3>What happens next?</h3>
-      <ul>
-        <li>Our team will review your requirements</li>
-        <li>We'll contact you to confirm details and provide a quote</li>
-        <li>Once confirmed, we'll schedule your service</li>
-      </ul>
-      
-      <p>If you have any urgent questions, please call us at +49-16097044182</p>
-      
-      <p>Best regards,<br>The Deep Cleaning Hub Team</p>
-      
-      <hr>
-      <p><em>This is an automated confirmation email.</em></p>
-    `;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Order Confirmation</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f9f9f9; }
+        .order-details { background: white; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .footer { text-align: center; padding: 20px; color: #666; }
+        .highlight { color: #e74c3c; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Order Confirmation</h1>
+          <p>Thank you for choosing Deep Cleaning Hub!</p>
+        </div>
+        
+        <div class="content">
+          <h2>Order Details</h2>
+          <div class="order-details">
+            <p><strong>Order ID:</strong> ${orderId}</p>
+            <p><strong>Customer:</strong> ${customerName}</p>
+            <p><strong>Service Date:</strong> ${serviceDate}</p>
+            <p><strong>Service Time:</strong> ${serviceTime}</p>
+            <p><strong>Total Amount:</strong> <span class="highlight">€${totalAmount}</span></p>
+            
+            <h3>Services:</h3>
+            <ul>
+              ${services.map(service => `<li>${service.name} - €${service.price}</li>`).join('')}
+            </ul>
+            
+            <h3>Service Address:</h3>
+            <p>${address.street_address}<br>
+            ${address.city} ${address.postal_code}<br>
+            ${address.country}</p>
+          </div>
+          
+          <p>We will contact you soon to confirm the details and schedule your service.</p>
+        </div>
+        
+        <div class="footer">
+          <p>Deep Cleaning Hub<br>
+          Professional Cleaning Services</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: customerEmail,
-      subject: 'Inquiry Confirmation - Deep Cleaning Hub',
-      html: emailContent,
-    };
+  const text = `
+Order Confirmation - ${orderId}
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Customer confirmation email sent:', info.messageId);
-    return info;
-  } catch (error) {
-    console.error('❌ Error sending customer confirmation:', error);
-    throw error;
-  }
+Dear ${customerName},
+
+Thank you for choosing Deep Cleaning Hub!
+
+Order Details:
+- Order ID: ${orderId}
+- Service Date: ${serviceDate}
+- Service Time: ${serviceTime}
+- Total Amount: €${totalAmount}
+
+Services:
+${services.map(service => `- ${service.name} - €${service.price}`).join('\n')}
+
+Service Address:
+${address.street_address}
+${address.city} ${address.postal_code}
+${address.country}
+
+We will contact you soon to confirm the details and schedule your service.
+
+Best regards,
+Deep Cleaning Hub Team
+  `;
+
+  return await sendEmail(customerEmail, `Order Confirmation - ${orderId}`, html, text);
 };
 
-// Send password reset email
-const sendPasswordResetEmail = async (adminEmail, resetToken) => {
-  try {
-    const transporter = createTransporter();
+// Send cancellation email
+const sendCancellationEmail = async (orderData) => {
+  const { customerEmail, customerName, orderId, serviceDate, serviceTime, totalAmount, cancellationReason } = orderData;
 
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Order Cancelled</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #e74c3c; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f9f9f9; }
+        .order-details { background: white; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .footer { text-align: center; padding: 20px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Order Cancelled</h1>
+          <p>Order ID: ${orderId}</p>
+        </div>
+        
+        <div class="content">
+          <p>Dear ${customerName},</p>
+          
+          <p>Your order has been successfully cancelled.</p>
+          
+          <div class="order-details">
+            <h3>Order Details:</h3>
+            <p><strong>Order ID:</strong> ${orderId}</p>
+            <p><strong>Service Date:</strong> ${serviceDate}</p>
+            <p><strong>Service Time:</strong> ${serviceTime}</p>
+            <p><strong>Total Amount:</strong> €${totalAmount}</p>
+            <p><strong>Cancellation Reason:</strong> ${cancellationReason}</p>
+          </div>
+          
+          <p>If you have any questions or would like to reschedule, please contact us.</p>
+        </div>
+        
+        <div class="footer">
+          <p>Deep Cleaning Hub<br>
+          Professional Cleaning Services</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
 
-    const emailContent = `
-      <h2>Password Reset Request</h2>
-      
-      <p>You have requested to reset your password for Deep Cleaning Hub Admin.</p>
-      
-      <p>Click the link below to reset your password:</p>
-      
-      <p><a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a></p>
-      
-      <p>If the button doesn't work, copy and paste this link into your browser:</p>
-      <p>${resetUrl}</p>
-      
-      <p><strong>This link will expire in 1 hour.</strong></p>
-      
-      <p>If you didn't request this password reset, please ignore this email.</p>
-      
-      <hr>
-      <p><em>This is an automated email from Deep Cleaning Hub.</em></p>
-    `;
+  const text = `
+Order Cancelled - ${orderId}
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: adminEmail,
-      subject: 'Password Reset - Deep Cleaning Hub Admin',
-      html: emailContent,
-    };
+Dear ${customerName},
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Password reset email sent:', info.messageId);
-    return info;
-  } catch (error) {
-    console.error('❌ Error sending password reset email:', error);
-    throw error;
-  }
-};
+Your order has been successfully cancelled.
 
-// Send general notification email
-const sendNotificationEmail = async (to, subject, content) => {
-  try {
-    const transporter = createTransporter();
+Order Details:
+- Order ID: ${orderId}
+- Service Date: ${serviceDate}
+- Service Time: ${serviceTime}
+- Total Amount: €${totalAmount}
+- Cancellation Reason: ${cancellationReason}
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to,
-      subject,
-      html: content,
-    };
+If you have any questions or would like to reschedule, please contact us.
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Notification email sent:', info.messageId);
-    return info;
-  } catch (error) {
-    console.error('❌ Error sending notification email:', error);
-    throw error;
-  }
+Best regards,
+Deep Cleaning Hub Team
+  `;
+
+  return await sendEmail(customerEmail, `Order Cancelled - ${orderId}`, html, text);
 };
 
 module.exports = {
-  sendInquiryEmail,
-  sendCustomerConfirmation,
-  sendPasswordResetEmail,
-  sendNotificationEmail
+  sendEmail,
+  sendOrderConfirmation,
+  sendCancellationEmail,
+  createTransporter
 };

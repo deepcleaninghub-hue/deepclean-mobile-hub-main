@@ -4,18 +4,28 @@
     "slug": "deepclean-mobile-hub",
     "version": "1.0.0",
     "orientation": "portrait",
+<<<<<<< HEAD
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
+=======
+    "icon": "./assets/appstore.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/appstore.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2d5016"
+>>>>>>> refs/remotes/origin/main
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
+<<<<<<< HEAD
       "bundleIdentifier": "com.deepcleanhub.mobile"
     },
     "android": {
@@ -30,6 +40,38 @@
     },
     "plugins": [
       "expo-font"
+=======
+      "bundleIdentifier": "com.deepcleanhub.mobile",
+      "infoPlist": {
+        "UIBackgroundModes": ["background-fetch", "background-processing"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/appstore.png",
+        "backgroundColor": "#2d5016"
+      },
+      "package": "com.deepcleanhub.mobile",
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/appstore.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/appstore.png",
+          "color": "#ffffff",
+          "defaultChannel": "default"
+        }
+      ]
+>>>>>>> refs/remotes/origin/main
     ],
     "extra": {
       "eas": {

@@ -109,7 +109,10 @@ router.post('/items', verifyToken, async (req, res) => {
   try {
     const { service_id, quantity = 1, user_inputs = {}, calculated_price } = req.body;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> refs/remotes/origin/main
     if (!service_id) {
       return res.status(400).json({ error: 'Service ID is required' });
     }
@@ -132,6 +135,60 @@ router.post('/items', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Service not found' });
     }
 
+<<<<<<< HEAD
+=======
+    // Calculate price for house moving services
+    let finalCalculatedPrice = calculated_price;
+    if (serviceVariant.service_id === 'house-moving' && user_inputs.area && user_inputs.distance) {
+      const area = parseFloat(user_inputs.area);
+      const distance = parseFloat(user_inputs.distance);
+      const rate = serviceVariant.unit_price || 20; // Default rate
+      
+      // House moving calculation: (area * rate) + (distance * 0.5) + 19% VAT
+      const labour = area * rate;
+      const transport = distance * 0.5;
+      const subtotal = labour + transport;
+      const tax = subtotal * 0.19;
+      finalCalculatedPrice = subtotal + tax;
+      
+      console.log('House moving calculation:', {
+        area,
+        distance,
+        rate,
+        labour,
+        transport,
+        subtotal,
+        tax,
+        total: finalCalculatedPrice
+      });
+    }
+
+    // Calculate price for office moving services
+    if (serviceVariant.service_id === 'office-moving' && user_inputs.items && user_inputs.distance) {
+      const items = parseFloat(user_inputs.items);
+      const distance = parseFloat(user_inputs.distance);
+      const rate = serviceVariant.unit_price || 90; // Default rate
+      
+      // Office moving calculation: (items * rate) + (distance * 0.5) + 19% VAT
+      const labour = items * rate;
+      const transport = distance * 0.5;
+      const subtotal = labour + transport;
+      const tax = subtotal * 0.19;
+      finalCalculatedPrice = subtotal + tax;
+      
+      console.log('Office moving calculation:', {
+        items,
+        distance,
+        rate,
+        labour,
+        transport,
+        subtotal,
+        tax,
+        total: finalCalculatedPrice
+      });
+    }
+
+>>>>>>> refs/remotes/origin/main
     // Use service variant data
     const service = {
       id: serviceVariant.id,
@@ -155,14 +212,23 @@ router.post('/items', verifyToken, async (req, res) => {
     if (existingItem) {
       // Update existing item
       const newQuantity = existingItem.quantity + quantity;
+<<<<<<< HEAD
       const finalCalculatedPrice = calculated_price ? calculated_price * newQuantity : service.price * newQuantity;
       
+=======
+      const priceToUse = finalCalculatedPrice || calculated_price || service.price;
+      const totalPrice = priceToUse * newQuantity;
+>>>>>>> refs/remotes/origin/main
 
       const { data, error } = await supabase
         .from('cart_items')
         .update({
           quantity: newQuantity,
+<<<<<<< HEAD
           calculated_price: finalCalculatedPrice,
+=======
+          calculated_price: totalPrice,
+>>>>>>> refs/remotes/origin/main
           user_inputs: { ...existingItem.user_inputs, ...user_inputs },
           updated_at: new Date().toISOString()
         })
@@ -178,8 +244,13 @@ router.post('/items', verifyToken, async (req, res) => {
       return res.json({ success: true, data, message: 'Cart item updated' });
     } else {
       // Add new item
+<<<<<<< HEAD
       const finalCalculatedPrice = calculated_price ? calculated_price * quantity : service.price * quantity;
       
+=======
+      const priceToUse = finalCalculatedPrice || calculated_price || service.price;
+      const totalPrice = priceToUse * quantity;
+>>>>>>> refs/remotes/origin/main
 
       const { data, error } = await supabase
         .from('cart_items')
@@ -191,7 +262,11 @@ router.post('/items', verifyToken, async (req, res) => {
           service_duration: service.duration,
           service_category: service.category,
           quantity,
+<<<<<<< HEAD
           calculated_price: finalCalculatedPrice,
+=======
+          calculated_price: totalPrice,
+>>>>>>> refs/remotes/origin/main
           user_inputs
         })
         .select()

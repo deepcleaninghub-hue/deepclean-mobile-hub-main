@@ -19,7 +19,12 @@ router.get('/', async (req, res) => {
         services (
           id,
           title,
+<<<<<<< HEAD
           category
+=======
+          category,
+          image_url
+>>>>>>> refs/remotes/origin/main
         )
       `)
       .eq('is_active', true);
@@ -86,7 +91,12 @@ router.get('/:id', async (req, res) => {
           id,
           title,
           category,
+<<<<<<< HEAD
           description
+=======
+          description,
+          image_url
+>>>>>>> refs/remotes/origin/main
         )
       `)
       .eq('id', id)
@@ -167,7 +177,12 @@ router.post('/', [
         services (
           id,
           title,
+<<<<<<< HEAD
           category
+=======
+          category,
+          image_url
+>>>>>>> refs/remotes/origin/main
         )
       `)
       .single();
@@ -213,7 +228,12 @@ router.put('/:id', [protect, admin], async (req, res) => {
         services (
           id,
           title,
+<<<<<<< HEAD
           category
+=======
+          category,
+          image_url
+>>>>>>> refs/remotes/origin/main
         )
       `)
       .single();

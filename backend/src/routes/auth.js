@@ -255,6 +255,47 @@ router.put('/change-password', [
   }
 });
 
+// @desc    Get current admin user
+// @route   GET /api/auth/admin/me
+// @access  Private/Admin
+router.get('/admin/me', protect, async (req, res) => {
+  try {
+    const { data: user, error } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('id', req.user.id)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Admin user not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        address: user.address || '',
+        role: user.role,
+        is_active: user.is_active,
+        last_login: user.last_login,
+        created_at: user.created_at,
+        updated_at: user.updated_at
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+});
+
 // @desc    Logout (client-side token removal)
 // @route   POST /api/auth/logout
 // @access  Private

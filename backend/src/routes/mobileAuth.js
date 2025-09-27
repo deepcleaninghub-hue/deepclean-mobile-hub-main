@@ -6,6 +6,7 @@ const { supabase } = require('../config/database');
 
 const router = express.Router();
 
+<<<<<<< HEAD
 // @desc    Mobile user sign up (alias for signup)
 // @route   POST /api/mobile-auth/register
 // @access  Public
@@ -27,6 +28,29 @@ router.post('/register', [
 
   try {
     const { email, password, firstName, lastName, phone } = req.body;
+=======
+// Debug endpoint to test what's being received
+router.post('/debug', (req, res) => {
+  console.log('=== DEBUG ENDPOINT ===');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+  res.json({
+    success: true,
+    received: req.body,
+    headers: req.headers
+  });
+});
+
+// @desc    Mobile user sign up (alias for signup)
+// @route   POST /api/mobile-auth/register
+// @access  Public
+router.post('/register', async (req, res) => {
+  console.log('=== REGISTER REQUEST ===');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+  try {
+    const { email, password, first_name, last_name, phone, address } = req.body;
+>>>>>>> refs/remotes/origin/main
 
     // Check if user already exists
     const { data: existingUser } = await supabase
@@ -52,15 +76,26 @@ router.post('/register', [
       .insert([{
         email,
         password: hashedPassword,
+<<<<<<< HEAD
         first_name: firstName,
         last_name: lastName,
         phone: phone || null,
+=======
+        first_name: first_name,
+        last_name: last_name,
+        phone: phone,
+        address: address,
+>>>>>>> refs/remotes/origin/main
         email_verified: false,
         is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])
+<<<<<<< HEAD
       .select('id, email, first_name, last_name, phone, email_verified, is_active, created_at')
+=======
+      .select('id, email, first_name, last_name, phone, address, email_verified, is_active, created_at')
+>>>>>>> refs/remotes/origin/main
       .single();
 
     if (error) {
@@ -87,6 +122,10 @@ router.post('/register', [
           first_name: user.first_name,
           last_name: user.last_name,
           phone: user.phone,
+<<<<<<< HEAD
+=======
+          address: user.address,
+>>>>>>> refs/remotes/origin/main
           is_verified: user.is_verified
         },
         token
@@ -105,12 +144,21 @@ router.post('/register', [
 // @route   POST /api/mobile-auth/signup
 // @access  Public
 router.post('/signup', [
+<<<<<<< HEAD
   [
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('firstName').notEmpty().withMessage('First name is required'),
     body('lastName').notEmpty().withMessage('Last name is required')
   ]
+=======
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('first_name').notEmpty().withMessage('First name is required'),
+  body('last_name').notEmpty().withMessage('Last name is required'),
+  body('phone').notEmpty().withMessage('Phone number is required'),
+  body('address').notEmpty().withMessage('Address is required')
+>>>>>>> refs/remotes/origin/main
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -121,7 +169,11 @@ router.post('/signup', [
   }
 
   try {
+<<<<<<< HEAD
     const { email, password, firstName, lastName, phone } = req.body;
+=======
+    const { email, password, first_name, last_name, phone, address } = req.body;
+>>>>>>> refs/remotes/origin/main
 
     // Check if user already exists
     const { data: existingUser } = await supabase
@@ -147,15 +199,26 @@ router.post('/signup', [
       .insert([{
         email,
         password: hashedPassword,
+<<<<<<< HEAD
         first_name: firstName,
         last_name: lastName,
         phone: phone || null,
+=======
+        first_name: first_name,
+        last_name: last_name,
+        phone: phone,
+        address: address,
+>>>>>>> refs/remotes/origin/main
         email_verified: false,
         is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])
+<<<<<<< HEAD
       .select('id, email, first_name, last_name, phone, email_verified, is_active, created_at')
+=======
+      .select('id, email, first_name, last_name, phone, address, email_verified, is_active, created_at')
+>>>>>>> refs/remotes/origin/main
       .single();
 
     if (error) {
@@ -182,6 +245,10 @@ router.post('/signup', [
           first_name: user.first_name,
           last_name: user.last_name,
           phone: user.phone,
+<<<<<<< HEAD
+=======
+          address: user.address,
+>>>>>>> refs/remotes/origin/main
           is_verified: user.is_verified
         },
         token
@@ -262,6 +329,10 @@ router.post('/login', [
           first_name: user.first_name,
           last_name: user.last_name,
           phone: user.phone,
+<<<<<<< HEAD
+=======
+          address: user.address,
+>>>>>>> refs/remotes/origin/main
           is_verified: user.is_verified
         },
         token
@@ -342,6 +413,10 @@ router.post('/signin', [
           first_name: user.first_name,
           last_name: user.last_name,
           phone: user.phone,
+<<<<<<< HEAD
+=======
+          address: user.address,
+>>>>>>> refs/remotes/origin/main
           is_verified: user.is_verified
         },
         token
@@ -445,13 +520,22 @@ router.put('/profile', [
       });
     }
 
+<<<<<<< HEAD
     const { firstName, lastName, phone } = req.body;
+=======
+    const { first_name, last_name, phone } = req.body;
+>>>>>>> refs/remotes/origin/main
     const updateData = {
       updated_at: new Date().toISOString()
     };
 
+<<<<<<< HEAD
     if (firstName) updateData.first_name = firstName;
     if (lastName) updateData.last_name = lastName;
+=======
+    if (first_name) updateData.first_name = first_name;
+    if (last_name) updateData.last_name = last_name;
+>>>>>>> refs/remotes/origin/main
     if (phone !== undefined) updateData.phone = phone;
 
     // Update user data

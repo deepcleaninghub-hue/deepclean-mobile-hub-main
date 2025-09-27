@@ -83,9 +83,22 @@ const insertDefaultServices = async () => {
       description: 'Professional moving services to help you relocate your home with care and efficiency.',
       image: 'https://deepcleaninghub.com/wp-content/uploads/2025/08/puls-furnture-assembly-services-included-1024x684-1-1.webp',
       category: 'Moving',
-      price: 'From €150',
+      pricing_type: 'per_unit',
+      unit_measure: 'm²',
       duration: '4-8 hours',
       features: ['Furniture disassembly', 'Safe packing', 'Transportation', 'Reassembly'],
+      is_active: true
+    },
+    {
+      id: 'office-moving',
+      title: 'Office Moving',
+      description: 'Professional office relocation services for businesses of all sizes with specialized equipment handling.',
+      image: 'https://deepcleaninghub.com/wp-content/uploads/2025/08/puls-furnture-assembly-services-included-1024x684-1-1.webp',
+      category: 'Moving',
+      pricing_type: 'per_unit',
+      unit_measure: 'items',
+      duration: '6-12 hours',
+      features: ['Office furniture', 'IT equipment', 'Filing systems', 'Specialized handling'],
       is_active: true
     },
     {
@@ -219,6 +232,7 @@ const insertDefaultServiceOptions = async () => {
     
     // House Moving Options
     {
+<<<<<<< HEAD
       id: 'moving-local',
       title: 'Local House Moving',
       description: 'Complete local moving service within the city',
@@ -236,6 +250,71 @@ const insertDefaultServiceOptions = async () => {
       price: 300,
       duration: '8-12 hours',
       features: ['Complete packing', 'Furniture protection', 'Long distance transport', 'Unpacking assistance'],
+=======
+      id: 'house-moving-with-lift',
+      title: 'House Moving (With Lift)',
+      description: 'Professional moving service with elevator access - €20/m²',
+      service_id: 'house-moving',
+      pricing_type: 'per_unit',
+      unit_price: 20,
+      unit_measure: 'm²',
+      min_measurement: 10,
+      max_measurement: 500,
+      measurement_step: 1,
+      measurement_placeholder: 'Enter area in m²',
+      duration: '4-8 hours',
+      features: ['Furniture disassembly', 'Safe packing', 'Transportation', 'Reassembly', 'Elevator access'],
+      is_active: true
+    },
+    {
+      id: 'house-moving-without-lift',
+      title: 'House Moving (Without Lift/Stairs)',
+      description: 'Professional moving service without elevator - €23/m²',
+      service_id: 'house-moving',
+      pricing_type: 'per_unit',
+      unit_price: 23,
+      unit_measure: 'm²',
+      min_measurement: 10,
+      max_measurement: 500,
+      measurement_step: 1,
+      measurement_placeholder: 'Enter area in m²',
+      duration: '4-8 hours',
+      features: ['Furniture disassembly', 'Safe packing', 'Transportation', 'Reassembly', 'Stair handling'],
+      is_active: true
+    },
+    
+    // Office Moving Options
+    {
+      id: 'office-moving-with-lift',
+      title: 'Office Moving (With Lift)',
+      description: 'Professional office moving service with elevator access - €90/item',
+      service_id: 'office-moving',
+      pricing_type: 'per_unit',
+      unit_price: 90,
+      unit_measure: 'items',
+      min_measurement: 1,
+      max_measurement: 100,
+      measurement_step: 1,
+      measurement_placeholder: 'Enter number of items',
+      duration: '6-12 hours',
+      features: ['Office furniture', 'IT equipment', 'Filing systems', 'Elevator access', 'Specialized handling'],
+      is_active: true
+    },
+    {
+      id: 'office-moving-without-lift',
+      title: 'Office Moving (Without Lift/Stairs)',
+      description: 'Professional office moving service without elevator - €120/item',
+      service_id: 'office-moving',
+      pricing_type: 'per_unit',
+      unit_price: 120,
+      unit_measure: 'items',
+      min_measurement: 1,
+      max_measurement: 100,
+      measurement_step: 1,
+      measurement_placeholder: 'Enter number of items',
+      duration: '6-12 hours',
+      features: ['Office furniture', 'IT equipment', 'Filing systems', 'Stair handling', 'Specialized equipment'],
+>>>>>>> refs/remotes/origin/main
       is_active: true
     },
     

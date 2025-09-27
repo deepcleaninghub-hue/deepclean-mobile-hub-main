@@ -46,11 +46,19 @@ const getNumberEnvVar = (key: string, defaultValue: number): number => {
 // Environment-specific configurations
 const developmentConfig: EnvironmentConfig = {
   API_BASE_URL: (() => {
+<<<<<<< HEAD
     const envValue = getEnvVar('API_BASE_URL', 'http://Mayanks-MacBook-Air.local:5001/api');
     console.log('🔍 API_BASE_URL Debug:', {
       envValue,
       processEnv: process.env.EXPO_PUBLIC_API_BASE_URL,
       fallback: 'http://Mayanks-MacBook-Air.local:5001/api'
+=======
+    const envValue = getEnvVar('API_BASE_URL', 'http://192.168.29.65:5001/api');
+    console.log('🔍 API_BASE_URL Debug:', {
+      envValue,
+      processEnv: process.env.EXPO_PUBLIC_API_BASE_URL,
+      fallback: 'http://192.168.29.65:5001/api'
+>>>>>>> refs/remotes/origin/main
     });
     return envValue;
   })(),

@@ -8,15 +8,27 @@ import {
   RefreshControl,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+<<<<<<< HEAD
 import { Text, Card, Button, TextInput, useTheme, Divider } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../../components/AppHeader';
+=======
+import { Text, Card, Button, TextInput, useTheme, Divider, Switch } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import AppHeader from '../../components/AppHeader';
+import MultiDateSelector from '../../components/MultiDateSelector';
+>>>>>>> refs/remotes/origin/main
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { serviceBookingAPI, CreateServiceBookingData } from '../../services/serviceBookingAPI';
 import { profileAPI, UserProfile } from '../../services/profileAPI';
 import { CartStackScreenProps } from '../../navigation/types';
+<<<<<<< HEAD
+=======
+import { BookingDate } from '../../types';
+>>>>>>> refs/remotes/origin/main
 
 type Props = CartStackScreenProps<'Checkout'>;
 
@@ -49,6 +61,24 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
   const [serviceDate, setServiceDate] = useState(new Date());
   const [serviceTime, setServiceTime] = useState(new Date());
   const [specialInstructions, setSpecialInstructions] = useState('');
+<<<<<<< HEAD
+=======
+  
+  // Multi-day booking state
+  const [isMultiDay, setIsMultiDay] = useState(false);
+  const [selectedDates, setSelectedDates] = useState<BookingDate[]>([]);
+
+  // Calculate total price accounting for multiple days
+  const calculateTotalPrice = () => {
+    const baseTotal = cartSummary?.totalPrice || 0;
+    if (isMultiDay && selectedDates.length > 0) {
+      return baseTotal * selectedDates.length;
+    }
+    return baseTotal;
+  };
+
+  const totalPrice = calculateTotalPrice();
+>>>>>>> refs/remotes/origin/main
 
   // Pre-fill address form with user profile data
   useEffect(() => {
@@ -128,6 +158,17 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Error', 'Please enter your postal code');
       return false;
     }
+<<<<<<< HEAD
+=======
+    if (isMultiDay && selectedDates.length === 0) {
+      Alert.alert('Error', 'Please select at least one service date');
+      return false;
+    }
+    if (!isMultiDay && !serviceDate) {
+      Alert.alert('Error', 'Please select a service date');
+      return false;
+    }
+>>>>>>> refs/remotes/origin/main
     return true;
   };
 
@@ -144,6 +185,7 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
     try {
       setLoading(true);
       
+<<<<<<< HEAD
       // Create order data
       const orderData = {
         user_id: user?.id,
@@ -161,12 +203,25 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
           user_inputs: item.user_inputs || {}
         }))
       };
+=======
+      // Prepare dates for booking
+      const datesToBook = isMultiDay ? selectedDates : [{
+        date: serviceDate.toISOString().split('T')[0],
+        time: serviceTime.toTimeString().split(' ')[0]?.substring(0, 5) || '09:00',
+        id: 'single_date'
+      }];
+>>>>>>> refs/remotes/origin/main
 
       console.log('Starting to create service bookings...');
       console.log('Cart items:', cartItems);
       console.log('User:', user);
+<<<<<<< HEAD
       console.log('Service date:', serviceDate.toISOString().split('T')[0]);
       console.log('Service time:', serviceTime.toTimeString().split(' ')[0]);
+=======
+      console.log('Is multi-day:', isMultiDay);
+      console.log('Dates to book:', datesToBook);
+>>>>>>> refs/remotes/origin/main
       
       // Create service bookings for each cart item
       const bookingPromises = cartItems.map(async (item, index) => {
@@ -177,17 +232,35 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
           throw new Error(`Service ID is required for item ${index + 1}`);
         }
         
+<<<<<<< HEAD
         const bookingData: CreateServiceBookingData = {
           service_id: serviceId,
           booking_date: serviceDate.toISOString().split('T')[0] as string,
           booking_time: serviceTime.toTimeString().split(' ')[0]?.substring(0, 5) || '09:00', // Convert to HH:MM format
           duration_minutes: parseInt((item.service_duration || item.duration || '2').split('-')[0] || '2') * 60 || 120, // Convert hours to minutes
+=======
+        // Calculate total amount for this item
+        // For multi-day bookings, send the total amount and let backend split it
+        const basePrice = item.calculated_price || item.service_price || item.price || 0;
+        const itemTotalAmount = isMultiDay ? basePrice * datesToBook.length : basePrice;
+        
+        const bookingData: CreateServiceBookingData = {
+          service_id: serviceId,
+          booking_date: datesToBook[0]?.date || '',
+          booking_time: datesToBook[0]?.time || '',
+          booking_dates: isMultiDay ? datesToBook.map(d => ({ date: d.date || '', time: d.time || '' })) : [],
+          duration_minutes: parseInt((item.service_duration || item.duration || '2').split('-')[0] || '2') * 60 || 120,
+>>>>>>> refs/remotes/origin/main
           customer_name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Customer',
           customer_email: user?.email || '',
           customer_phone: user?.phone || undefined,
           service_address: `${address.street_address}, ${address.city}, ${address.postal_code}, ${address.country}`,
           special_instructions: specialInstructions || address.additional_notes,
+<<<<<<< HEAD
           total_amount: item.calculated_price || item.service_price || item.price || 0,
+=======
+          total_amount: itemTotalAmount,
+>>>>>>> refs/remotes/origin/main
           payment_method: 'pending'
         };
 
@@ -219,9 +292,15 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
       navigation.navigate('OrderConfirmation', { 
         bookingId: uniqueOrderId,
         orderData: {
+<<<<<<< HEAD
           service_date: serviceDate.toISOString().split('T')[0] as string,
           service_time: serviceTime.toTimeString().split(' ')[0]?.substring(0, 5) || '09:00',
           total_amount: cartSummary?.totalPrice || 0,
+=======
+          service_date: datesToBook[0]?.date || '',
+          service_time: datesToBook[0]?.time || '',
+          total_amount: totalPrice,
+>>>>>>> refs/remotes/origin/main
           items: createdBookings.map((booking, index) => ({
             service_title: cartItems[index]?.service_title || cartItems[index]?.title || 'Service',
             calculated_price: booking.total_amount,
@@ -316,13 +395,37 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             ))}
             
+<<<<<<< HEAD
+=======
+            {isMultiDay && selectedDates.length > 1 && (
+              <>
+                <Divider style={styles.divider} />
+                <View style={styles.pricingBreakdown}>
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
+                    Base Price (per day): €{(cartSummary?.totalPrice || 0).toFixed(2)}
+                  </Text>
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
+                    Number of Days: {selectedDates.length}
+                  </Text>
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
+                    Total: €{(cartSummary?.totalPrice || 0).toFixed(2)} × {selectedDates.length} = €{totalPrice.toFixed(2)}
+                  </Text>
+                </View>
+              </>
+            )}
+            
+>>>>>>> refs/remotes/origin/main
             <Divider style={styles.divider} />
             <View style={styles.totalRow}>
               <Text variant="titleLarge" style={{ color: theme.colors.onSurface }}>
                 Total
               </Text>
               <Text variant="titleLarge" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
+<<<<<<< HEAD
                 €{(cartSummary?.totalPrice || 0).toFixed(2)}
+=======
+                €{totalPrice.toFixed(2)}
+>>>>>>> refs/remotes/origin/main
               </Text>
             </View>
           </Card.Content>
@@ -331,6 +434,7 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
         {/* Service Date & Time */}
         <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
+<<<<<<< HEAD
             <Text variant="titleLarge" style={[styles.cardTitle, { color: theme.colors.onSurface }]}>
               Service Details
             </Text>
@@ -363,6 +467,62 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
                 </Button>
               </View>
             </View>
+=======
+            <View style={styles.serviceDetailsHeader}>
+              <Text variant="titleLarge" style={[styles.cardTitle, { color: theme.colors.onSurface }]}>
+                Service Details
+              </Text>
+              <View style={styles.multiDayToggle}>
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Multiple Days
+                </Text>
+                <Switch
+                  value={isMultiDay}
+                  onValueChange={setIsMultiDay}
+                  color={theme.colors.primary}
+                />
+              </View>
+            </View>
+            <Divider style={styles.divider} />
+            
+            {isMultiDay ? (
+              <MultiDateSelector
+                selectedDates={selectedDates}
+                onDatesChange={setSelectedDates}
+                serviceTime={serviceTime}
+                onTimeChange={setServiceTime}
+                maxDays={7}
+              />
+            ) : (
+              <View style={styles.dateTimeRow}>
+                <View style={styles.dateTimeItem}>
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                    Service Date
+                  </Text>
+                  <Button
+                    mode="outlined"
+                    onPress={() => setShowDatePicker(true)}
+                    style={styles.dateTimeButton}
+                  >
+                    {formatDate(serviceDate)}
+                  </Button>
+                </View>
+                
+                <View style={styles.dateTimeItem}>
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                    Service Time
+                  </Text>
+                  <Button
+                    mode="outlined"
+                    onPress={() => setShowTimePicker(true)}
+                    style={styles.dateTimeButton}
+                  >
+                    {formatTime(serviceTime)}
+                  </Button>
+                </View>
+              </View>
+            )}
+>>>>>>> refs/remotes/origin/main
           </Card.Content>
         </Card>
 
@@ -449,7 +609,11 @@ const CheckoutScreen: React.FC<Props> = ({ navigation }) => {
           style={[styles.placeOrderButton, { backgroundColor: theme.colors.primary }]}
           contentStyle={styles.buttonContent}
         >
+<<<<<<< HEAD
           {loading ? 'Placing Order...' : `Place Order - €${(cartSummary?.totalPrice || 0).toFixed(2)}`}
+=======
+          {loading ? 'Placing Order...' : `Place Order - €${totalPrice.toFixed(2)}`}
+>>>>>>> refs/remotes/origin/main
         </Button>
       </ScrollView>
 
@@ -552,6 +716,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+<<<<<<< HEAD
+=======
+  pricingBreakdown: {
+    paddingVertical: 8,
+    gap: 4,
+  },
+  serviceDetailsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  multiDayToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+>>>>>>> refs/remotes/origin/main
   dateTimeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

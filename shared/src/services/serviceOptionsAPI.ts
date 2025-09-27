@@ -15,6 +15,10 @@ export interface ServiceOption {
     id: string;
     title: string;
     category: string;
+<<<<<<< HEAD
+=======
+    image_url?: string;
+>>>>>>> refs/remotes/origin/main
   };
 }
 

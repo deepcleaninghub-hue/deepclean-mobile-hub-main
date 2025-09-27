@@ -1,5 +1,9 @@
 import React from 'react';
+<<<<<<< HEAD
 import { View, ScrollView, StyleSheet, RefreshControl, Alert } from 'react-native';
+=======
+import { View, ScrollView, StyleSheet, RefreshControl, Alert, Platform } from 'react-native';
+>>>>>>> refs/remotes/origin/main
 import { Text, Card, Button, Chip, Divider, useTheme, IconButton, ActivityIndicator } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import AppHeader from '../../components/AppHeader';
@@ -73,10 +77,47 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <AppHeader title="Cart" />
 
+<<<<<<< HEAD
       <ScrollView 
         style={styles.scrollContainer}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={refreshCart} />
+=======
+      {/* Manual Refresh Button */}
+      <View style={styles.refreshButtonContainer}>
+        <Button
+          mode="outlined"
+          icon="refresh"
+          onPress={() => {
+            console.log('🔄 Manual refresh button pressed');
+            refreshCart(true);
+          }}
+          disabled={loading}
+          compact
+          style={styles.refreshButton}
+        >
+          {loading ? 'Refreshing...' : 'Refresh Cart'}
+        </Button>
+      </View>
+
+      <ScrollView 
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        refreshControl={
+          <RefreshControl 
+            refreshing={loading} 
+            onRefresh={() => {
+              console.log('🔄 RefreshControl triggered on Android');
+              refreshCart(true);
+            }}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+            progressBackgroundColor={theme.colors.surface}
+            title="Pull to refresh"
+            titleColor={theme.colors.onSurface}
+          />
+>>>>>>> refs/remotes/origin/main
         }
       >
         {/* Cart Items */}
@@ -144,6 +185,7 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
               Order Summary
             </Text>
             <View style={styles.summaryRow}>
+<<<<<<< HEAD
               <Text variant="bodyLarge" style={[styles.summaryLabel, { color: theme.colors.onSurfaceVariant }]}>
                 Subtotal
               </Text>
@@ -161,11 +203,17 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
             </View>
             <Divider style={styles.summaryDivider} />
             <View style={styles.summaryRow}>
+=======
+>>>>>>> refs/remotes/origin/main
               <Text variant="titleLarge" style={[styles.totalLabel, { color: theme.colors.onSurface }]}>
                 Total
               </Text>
               <Text variant="titleLarge" style={[styles.totalValue, { color: theme.colors.primary }]}>
+<<<<<<< HEAD
                 €{((cartSummary?.totalPrice || 0) + 5.99).toFixed(2)}
+=======
+                €{(cartSummary?.totalPrice || 0).toFixed(2)}
+>>>>>>> refs/remotes/origin/main
               </Text>
             </View>
           </Card.Content>
@@ -226,7 +274,24 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+<<<<<<< HEAD
     padding: 16,
+=======
+  },
+  scrollContent: {
+    padding: 16,
+    flexGrow: 1,
+  },
+  refreshButtonContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#f5f5f5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  refreshButton: {
+    alignSelf: 'flex-start',
+>>>>>>> refs/remotes/origin/main
   },
   cartItemCard: {
     marginBottom: 12,
